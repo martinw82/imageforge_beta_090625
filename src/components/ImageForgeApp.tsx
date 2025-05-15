@@ -22,7 +22,6 @@ interface GeneratedImage {
   promptUsed: string;
 }
 
-// Updated default values to incorporate the detailed consistency requirements.
 const defaultValues: PromptFormValuesSchema = {
   startPrompt: `**Consistency Requirements** (Fixed Across All Images):
 - **Art Style**: Clean, semi-futuristic illustration with crisp lines, vibrant colors, and a professional tone.
@@ -32,7 +31,10 @@ const defaultValues: PromptFormValuesSchema = {
 - **Negative Prompt**: Avoid blurry, cartoonish, overly complex, cluttered, low contrast.
 
 **Scene Details** (Based on the following data from each CSV row):`,
-  csvText: "scene_description,bobs_action,props_elements,mood_tone\nDecentralized governance hub,Bob presenting a holographic DAO structure,Floating charts and diverse community avatars,Optimistic and collaborative\nBlockchain security center,Bob using his robotic arm to shield a data core,Network nodes and firewalls,Secure and vigilant",
+  csvText: `Concept,Scene,Bob's Action,Props/Elements,Mood/Tone
+Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist with his robotic arm,Scorecard with Product Community Security Economics Operations,Bob looks thoughtful visualizes readiness quiz
+Decentralized Governance,DAO Hub with floating charts,Bob presenting holographic DAO,Community avatars data streams,Optimistic collaborative
+Blockchain Security,Fortified Data Core Facility,Bob shielding data core with arm,Network nodes glowing firewalls,Secure vigilant`,
   endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
 };
 
@@ -49,8 +51,13 @@ export default function ImageForgeApp() {
 
   const formatRowData = (row: Record<string, string>): string => {
     return Object.entries(row)
-      .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`)
-      .join(', ');
+      .map(([key, value]) => {
+        const formattedKey = key
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+        return `- **${formattedKey}**: ${value}`;
+      })
+      .join('\n'); // Join with newline for itemized list
   };
 
   const onSubmit: SubmitHandler<PromptFormValuesSchema> = async (data) => {
@@ -86,19 +93,17 @@ export default function ImageForgeApp() {
       setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
       const formattedRowData = formatRowData(row);
       
-      // Construct the full prompt. Image size and style are now part of startPrompt.
       let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
       fullPrompt = fullPrompt.trim();
 
       try {
-        // The selectAiModel input schema now only expects the full prompt.
         const aiInput: SelectAiModelInput = {
           prompt: fullPrompt,
         };
         
         const result = await selectAiModel(aiInput);
         newImages.push({ imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt });
-        setGeneratedImages([...newImages]); 
+        setGeneratedImages(prevImages => [...prevImages.slice(0, i), { imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt }, ...prevImages.slice(i + 1)]);
       } catch (error) {
         console.error("Error generating image for row:", row, error);
         toast({
@@ -182,3 +187,4 @@ export default function ImageForgeApp() {
     </div>
   );
 }
+

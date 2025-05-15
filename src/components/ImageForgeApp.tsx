@@ -14,7 +14,7 @@ import { PromptForm, type PromptFormValuesSchema, promptFormSchema } from "./Pro
 import { ImageGallery } from "./ImageGallery";
 import { parseCsv } from "@/lib/csvParser";
 import ImageForgeLogo from "./icons/ImageForgeLogo";
-import { Loader2, Image as ImageIcon } from "lucide-react";
+import { Loader2, Image as ImageIcon, FileText } from "lucide-react";
 import NextImage from "next/image";
 
 interface GeneratedImage {
@@ -38,6 +38,7 @@ const defaultValues: PromptFormValuesSchema = {
 Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist with his robotic arm,Scorecard with Product Community Security Economics Operations,Bob looks thoughtful visualizes readiness quiz
 Decentralized Governance,DAO Hub with floating charts,Bob presenting holographic DAO,Community avatars data streams,Optimistic collaborative
 Blockchain Security,Fortified Data Core Facility,Bob shielding data core with arm,Network nodes glowing firewalls,Secure vigilant`,
+  csvFile: null,
   endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
   apiKey: "",
   referenceImage: null,
@@ -49,6 +50,7 @@ export default function ImageForgeApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState("");
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const [uploadedCsvFileName, setUploadedCsvFileName] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<PromptFormValuesSchema>({
@@ -57,6 +59,7 @@ export default function ImageForgeApp() {
   });
 
   const watchedReferenceImage = form.watch("referenceImage");
+  const watchedCsvFile = form.watch("csvFile");
 
   useEffect(() => {
     if (watchedReferenceImage instanceof File) {
@@ -69,6 +72,14 @@ export default function ImageForgeApp() {
       setReferenceImagePreview(null);
     }
   }, [watchedReferenceImage]);
+
+  useEffect(() => {
+    if (watchedCsvFile instanceof File) {
+      setUploadedCsvFileName(watchedCsvFile.name);
+    } else if (watchedCsvFile === null) {
+      setUploadedCsvFileName(null);
+    }
+  }, [watchedCsvFile]);
 
 
   const formatRowData = (row: Record<string, string>): string => {
@@ -108,8 +119,41 @@ export default function ImageForgeApp() {
       }
     }
 
+    let csvContentToParse: string;
+    if (data.csvFile instanceof File) {
+      setProgressMessage("Reading CSV file...");
+      try {
+        csvContentToParse = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+          reader.readAsText(data.csvFile);
+        });
+      } catch (error) {
+        console.error("Error reading CSV file:", error);
+        toast({
+          variant: "destructive",
+          title: "Error Reading CSV File",
+          description: "Could not process the uploaded CSV file. Please check the file and try again.",
+        });
+        setIsLoading(false);
+        return;
+      }
+    } else if (data.csvText && data.csvText.trim() !== "") {
+      csvContentToParse = data.csvText;
+    } else {
+      // This case should ideally be caught by Zod superRefine
+      toast({
+        variant: "destructive",
+        title: "No CSV Data Provided",
+        description: "Please either paste CSV data into the text area or upload a CSV file.",
+      });
+      setIsLoading(false);
+      return;
+    }
+    setProgressMessage("Parsing CSV data...");
+    const parseResult = parseCsv(csvContentToParse);
 
-    const parseResult = parseCsv(data.csvText);
     if ("error" in parseResult) {
       toast({
         variant: "destructive",
@@ -136,19 +180,17 @@ export default function ImageForgeApp() {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
+      setProgressMessage(\`Generating image \${i + 1} of \${rows.length}...\`);
       const formattedRowData = formatRowData(row);
 
-      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
+      let fullPrompt = \`\${data.startPrompt}\n\${formattedRowData}\n\${data.endPrompt}\`;
       fullPrompt = fullPrompt.trim();
 
-      // Determine filename hint
       const firstColumnKey = Object.keys(row)[0];
-      let fileNameBase = row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || `image_${i + 1}`;
+      let fileNameBase = row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || \`image_\${i + 1}\`;
       if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {
-          fileNameBase = `image_${i + 1}`;
+          fileNameBase = \`image_\${i + 1}\`;
       }
-
 
       try {
         const aiInput: SelectAiModelInput = {
@@ -171,13 +213,13 @@ export default function ImageForgeApp() {
         console.error("Error generating image for row:", row, error);
         toast({
           variant: "destructive",
-          title: `Error generating image for row ${i + 1}`,
+          title: \`Error generating image for row \${i + 1}\`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
       }
 
       if (delayBetweenGenerations > 0 && i < rows.length - 1) {
-        setProgressMessage(`Waiting for ${delayBetweenGenerations} seconds before generating image ${i + 2}...`);
+        setProgressMessage(\`Waiting for \${delayBetweenGenerations} seconds before generating image \${i + 2}...\`);
         await new Promise(resolve => setTimeout(resolve, delayBetweenGenerations * 1000));
       }
     }
@@ -186,7 +228,7 @@ export default function ImageForgeApp() {
     if (newImages.length > 0) {
        toast({
         title: "Success!",
-        description: `Successfully generated ${newImages.length} images.`,
+        description: \`Successfully generated \${newImages.length} images.\`,
         variant: "default",
         className: "bg-accent text-accent-foreground rounded-md shadow-lg"
       });
@@ -220,18 +262,29 @@ export default function ImageForgeApp() {
             </CardHeader>
             <CardContent>
               <PromptForm form={form} onSubmit={form.handleSubmit(onSubmit)} isLoading={isLoading} />
-              {referenceImagePreview && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                  <h3 className="text-sm font-medium text-foreground mb-2">Reference Image Preview:</h3>
-                  <NextImage
-                    src={referenceImagePreview}
-                    alt="Reference image preview"
-                    width={100}
-                    height={100}
-                    className="rounded-md object-contain max-h-32 w-auto"
-                  />
-                </div>
-              )}
+              <div className="mt-4 space-y-3">
+                {referenceImagePreview && (
+                  <div className="p-3 border rounded-lg bg-muted/50">
+                    <h3 className="text-xs font-medium text-foreground mb-1.5">Reference Image Preview:</h3>
+                    <NextImage
+                      src={referenceImagePreview}
+                      alt="Reference image preview"
+                      width={80}
+                      height={80}
+                      className="rounded-md object-contain max-h-24 w-auto"
+                    />
+                  </div>
+                )}
+                {uploadedCsvFileName && (
+                   <div className="p-3 border rounded-lg bg-muted/50">
+                    <h3 className="text-xs font-medium text-foreground mb-1.5 flex items-center">
+                      <FileText className="h-4 w-4 mr-2 text-primary" />
+                      Uploaded CSV:
+                    </h3>
+                    <p className="text-sm text-foreground truncate">{uploadedCsvFileName}</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -273,4 +326,3 @@ export default function ImageForgeApp() {
     </div>
   );
 }
-

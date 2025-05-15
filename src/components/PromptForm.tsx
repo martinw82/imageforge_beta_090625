@@ -26,7 +26,19 @@ import { Loader2 } from "lucide-react";
 
 export const promptFormSchema = z.object({
   startPrompt: z.string().min(1, "Start prompt (including consistency rules) is required."),
-  csvText: z.string().min(1, "CSV data is required."),
+  csvText: z.string().optional(),
+  csvFile: z
+    .instanceof(typeof File !== 'undefined' ? File : Object)
+    .optional()
+    .nullable()
+    .refine(
+      (file) => !file || file.type === "text/csv" || (typeof file?.name === 'string' && file.name.endsWith('.csv')),
+      `Uploaded file must be a CSV (.csv) file.`
+    )
+    .refine(
+      (file) => !file || file.size <= 1 * 1024 * 1024, // 1MB limit
+      `CSV file must be less than 1MB.`
+    ),
   endPrompt: z.string().min(1, "End prompt is required."),
   apiKey: z.string().optional(),
   referenceImage: z
@@ -42,6 +54,20 @@ export const promptFormSchema = z.object({
       `Reference file must be an image.`
     ),
   delaySeconds: z.number().min(0).optional().default(0),
+}).superRefine((data, ctx) => {
+  if (!data.csvFile && (!data.csvText || data.csvText.trim() === "")) {
+    const errorMessage = "Either CSV text or a CSV file must be provided.";
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: errorMessage,
+      path: ["csvText"], 
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: errorMessage,
+      path: ["csvFile"],
+    });
+  }
 });
 
 export type PromptFormValuesSchema = z.infer<typeof promptFormSchema>;
@@ -80,7 +106,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
           name="csvText"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>CSV Data (Scene Details)</FormLabel>
+              <FormLabel>CSV Data (Scene Details) - Text Input</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Concept,Scene,Bob's Action,Props/Elements,Mood/Tone&#10;Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist...,Scorecard with labels,Bob looks thoughtful...&#10;Decentralized Governance,DAO Hub with charts,Bob presenting DAO,Community avatars,Optimistic..."
@@ -88,11 +114,44 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Paste your CSV data here. Each row defines a unique scene. The first row should be headers.</FormDescription>
+              <FormDescription>
+                Paste your CSV data here, or upload a CSV file below. If a file is uploaded, its content will be used. Each row defines a unique scene. The first row should be headers.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="csvFile"
+          render={({ field: { onChange, value, ...rest } }) => ( // `value` is managed by react-hook-form
+            <FormItem>
+              <FormLabel>Upload CSV File (Alternative to Text Area)</FormLabel>
+              <FormControl>
+                <Input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    onChange(file || null);
+                  }}
+                  // Do not spread `value` for file inputs as it's controlled differently
+                  name={rest.name}
+                  onBlur={rest.onBlur}
+                  ref={rest.ref}
+                  disabled={rest.disabled}
+                  className="file:text-primary file:font-medium"
+                />
+              </FormControl>
+              <FormDescription>
+                Upload a .csv file. If provided, this will be used instead of the text area. Max 1MB.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
 
         <FormField
           control={form.control}
@@ -127,7 +186,10 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                     const file = e.target.files?.[0];
                     onChange(file || null);
                   }}
-                  {...rest}
+                  name={rest.name}
+                  onBlur={rest.onBlur}
+                  ref={rest.ref}
+                  disabled={rest.disabled}
                   className="file:text-primary file:font-medium"
                 />
               </FormControl>

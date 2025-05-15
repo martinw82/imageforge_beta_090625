@@ -31,6 +31,7 @@ const defaultValues: PromptFormValuesSchema = {
 - **Color Palette**: Use only #0055FF (Blue), #FF0000 (Red), #FFFFFF (White), #1C2526 (Dark Gray).
 - **Resolution**: 1920x1080, 16:9.
 - **Negative Prompt**: Avoid blurry, cartoonish, overly complex, cluttered, low contrast.
+- **Using a Reference Image**: If you provide a reference image, your 'Scene Details' below (from the CSV) should describe how that image (e.g., a character or logo) should be integrated or modified. For example: "Place the character from the reference image into a bustling marketplace scene," or "Render the object described below in the style of the provided reference logo."
 
 **Scene Details** (Based on the following data from each CSV row):`,
   csvText: `Concept,Scene,Bob's Action,Props/Elements,Mood/Tone
@@ -272,3 +273,4 @@ export default function ImageForgeApp() {
     </div>
   );
 }
+

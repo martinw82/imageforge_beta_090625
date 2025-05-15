@@ -5,8 +5,9 @@ import type { UseFormReturn, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+// Input component is no longer needed here as imageSize and imageStyle are removed.
+// import { Input } from "@/components/ui/input"; 
+// import { Label } from "@/components/ui/label"; // No longer needed if Input fields are removed
 import {
   Form,
   FormControl,
@@ -18,13 +19,12 @@ import {
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
 
+// Schema updated: imageSize and imageStyle are removed.
+// These are now part of the startPrompt.
 export const promptFormSchema = z.object({
-  startPrompt: z.string().min(1, "Start prompt is required."),
+  startPrompt: z.string().min(1, "Start prompt (including consistency rules) is required."),
   csvText: z.string().min(1, "CSV data is required."),
   endPrompt: z.string().min(1, "End prompt is required."),
-  // modelName: z.string().min(1, "Model name is required."), // Removed
-  imageSize: z.string().optional(),
-  imageStyle: z.string().optional(),
 });
 
 export type PromptFormValuesSchema = z.infer<typeof promptFormSchema>;
@@ -44,15 +44,15 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
           name="startPrompt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Start Prompt</FormLabel>
+              <FormLabel>Start Prompt (Consistency Rules)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g., A photo of a product:"
-                  className="resize-y min-h-[80px]"
+                  placeholder="Define fixed consistency rules (Art Style, Bob's Design, Colors, Resolution, Negative Prompts) that precede each row's data."
+                  className="resize-y min-h-[150px] font-mono text-sm"
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Text that will precede each row's data in the prompt.</FormDescription>
+              <FormDescription>This text, including all consistency rules, will precede each row's data in the full prompt.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -63,7 +63,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
           name="csvText"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>CSV Data</FormLabel>
+              <FormLabel>CSV Data (Scene Details)</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="header1,header2,header3&#10;value1a,value2a,value3a&#10;value1b,value2b,value3b"
@@ -71,7 +71,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Paste your CSV data here. The first row should be headers.</FormDescription>
+              <FormDescription>Paste your CSV data here. Each row defines a unique scene. The first row should be headers.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -82,52 +82,21 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
           name="endPrompt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>End Prompt</FormLabel>
+              <FormLabel>End Prompt (Reinforce Consistency)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g., in a bright, clean environment."
+                  placeholder="e.g., Ensure high consistency with defined rules."
                   className="resize-y min-h-[80px]"
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Text that will follow each row's data in the prompt.</FormDescription>
+              <FormDescription>This text will follow each row's data in the full prompt, typically to reinforce consistency.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* ModelName FormField removed */}
-           <FormField
-            control={form.control}
-            name="imageSize"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Image Size (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 1024x1024" {...field} />
-                </FormControl>
-                 <FormDescription>Guidance for desired image dimensions (included in prompt).</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="imageStyle"
-            render={({ field }) => (
-              <FormItem className="sm:col-start-2">
-                <FormLabel>Image Style (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., photorealistic, artistic" {...field} />
-                </FormControl>
-                <FormDescription>Preferred visual style for images (included in prompt).</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
+        {/* ImageSize and ImageStyle FormFields are removed as these are now part of startPrompt */}
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
           {isLoading ? (
@@ -143,4 +112,3 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
     </Form>
   );
 }
-

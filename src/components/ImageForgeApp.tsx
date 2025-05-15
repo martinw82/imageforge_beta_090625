@@ -22,13 +22,18 @@ interface GeneratedImage {
   promptUsed: string;
 }
 
+// Updated default values to incorporate the detailed consistency requirements.
 const defaultValues: PromptFormValuesSchema = {
-  startPrompt: "A detailed image of a product:",
-  csvText: "product_name,feature,color\nT-Shirt,logo,blue\nCoffee Mug,quote,white",
-  endPrompt: "Ensure the style is vibrant and appealing.",
-  // modelName: "googleai/gemini-2.0-flash-exp", // Removed as model is fixed in flow
-  imageSize: "1024x1024",
-  imageStyle: "photorealistic",
+  startPrompt: `**Consistency Requirements** (Fixed Across All Images):
+- **Art Style**: Clean, semi-futuristic illustration with crisp lines, vibrant colors, and a professional tone.
+- **Consistent Element (Bob)**: Include Bob, a sleek humanoid robot with a red-armored body, glowing blue LED eyes, and a single robotic arm with precise movements, identical in every image. Bob is prominently centered unless otherwise specified.
+- **Color Palette**: Use only #0055FF (Blue), #FF0000 (Red), #FFFFFF (White), #1C2526 (Dark Gray).
+- **Resolution**: 1920x1080, 16:9.
+- **Negative Prompt**: Avoid blurry, cartoonish, overly complex, cluttered, low contrast.
+
+**Scene Details** (Based on the following data from each CSV row):`,
+  csvText: "scene_description,bobs_action,props_elements,mood_tone\nDecentralized governance hub,Bob presenting a holographic DAO structure,Floating charts and diverse community avatars,Optimistic and collaborative\nBlockchain security center,Bob using his robotic arm to shield a data core,Network nodes and firewalls,Secure and vigilant",
+  endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
 };
 
 export default function ImageForgeApp() {
@@ -81,28 +86,14 @@ export default function ImageForgeApp() {
       setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
       const formattedRowData = formatRowData(row);
       
-      // Construct the full prompt including size and style guidance for the AI model
-      let fullPrompt = `${data.startPrompt} ${formattedRowData} ${data.endPrompt}`;
-      if (data.imageSize) {
-        fullPrompt += ` Image Size: ${data.imageSize}.`;
-      }
-      if (data.imageStyle) {
-        fullPrompt += ` Style: ${data.imageStyle}.`;
-      }
+      // Construct the full prompt. Image size and style are now part of startPrompt.
+      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
       fullPrompt = fullPrompt.trim();
 
-
       try {
-        // The selectAiModel input schema now expects prompt, imageSize, and style directly
-        // but imageSize and style are for prompt *construction* rather than direct API params.
-        // The flow's internal prompt template will incorporate them if it's designed to.
-        // For the current selectAiModelFlow, we pass the fully constructed prompt directly.
-        // We also pass imageSize and style so the flow can use them in its internal prompt if needed,
-        // or for logging/metadata, even if our current flow prompt template incorporates them directly.
+        // The selectAiModel input schema now only expects the full prompt.
         const aiInput: SelectAiModelInput = {
-          prompt: fullPrompt, // This is the complete prompt
-          imageSize: data.imageSize, // Pass along for potential use or if flow's prompt needs it separately
-          style: data.imageStyle,   // Pass along for potential use
+          prompt: fullPrompt,
         };
         
         const result = await selectAiModel(aiInput);
@@ -138,7 +129,7 @@ export default function ImageForgeApp() {
           <h1 className="text-4xl font-bold text-primary">ImageForge</h1>
         </div>
         <p className="text-muted-foreground mt-2">
-          Generate multiple images from CSV data using AI.
+          Generate multiple images from CSV data using AI, with consistent elements.
         </p>
       </header>
 
@@ -191,4 +182,3 @@ export default function ImageForgeApp() {
     </div>
   );
 }
-

@@ -26,18 +26,27 @@ import { Loader2 } from "lucide-react";
 
 export const promptFormSchema = z.object({
   startPrompt: z.string().min(1, "Start prompt (including consistency rules) is required."),
-  csvText: z.string().optional(),
-  csvFile: z
+  csvText: z.string().optional(), // Renamed to generic 'dataText' or keep as csvText if it can also hold TSV content? For now, csvText implies it can hold pasted TSV too.
+  csvFile: z // This field will now handle both CSV and TSV
     .instanceof(typeof File !== 'undefined' ? File : Object)
     .optional()
     .nullable()
     .refine(
-      (file) => !file || file.type === "text/csv" || (typeof file?.name === 'string' && file.name.endsWith('.csv')),
-      `Uploaded file must be a CSV (.csv) file.`
+      (file) => {
+        if (!file) return true; // Allow null or undefined
+        const fileName = typeof file.name === 'string' ? file.name.toLowerCase() : '';
+        return (
+          file.type === "text/csv" ||
+          file.type === "text/tab-separated-values" ||
+          fileName.endsWith('.csv') ||
+          fileName.endsWith('.tsv')
+        );
+      },
+      `Uploaded file must be a CSV (.csv) or TSV (.tsv) file.`
     )
     .refine(
       (file) => !file || file.size <= 1 * 1024 * 1024, // 1MB limit
-      `CSV file must be less than 1MB.`
+      `Uploaded file must be less than 1MB.`
     ),
   endPrompt: z.string().min(1, "End prompt is required."),
   apiKey: z.string().optional(),
@@ -56,7 +65,7 @@ export const promptFormSchema = z.object({
   delaySeconds: z.number().min(0).optional().default(0),
 }).superRefine((data, ctx) => {
   if (!data.csvFile && (!data.csvText || data.csvText.trim() === "")) {
-    const errorMessage = "Either CSV text or a CSV file must be provided.";
+    const errorMessage = "Either paste data into the text area or upload a CSV/TSV file.";
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: errorMessage,
@@ -106,16 +115,16 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
           name="csvText"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>CSV Data (Scene Details) - Text Input</FormLabel>
+              <FormLabel>Data Input (CSV or TSV format) - Text Area</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Concept,Scene,Bob's Action,Props/Elements,Mood/Tone&#10;Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist...,Scorecard with labels,Bob looks thoughtful...&#10;Decentralized Governance,DAO Hub with charts,Bob presenting DAO,Community avatars,Optimistic..."
+                  placeholder="Concept,Scene,Bob's Action,Props/Elements,Mood/Tone&#10;Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist...,Scorecard with labels,Bob looks thoughtful...&#10;&#10;Or paste TSV data (tab-separated) here."
                   className="resize-y min-h-[150px] font-mono text-sm"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                Paste your CSV data here, or upload a CSV file below. If a file is uploaded, its content will be used. Each row defines a unique scene. The first row should be headers.
+                Paste your CSV or TSV data here, or upload a file below. If a file is uploaded, its content will be used. Each row defines a unique scene. The first row should be headers.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -125,18 +134,17 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
         <FormField
           control={form.control}
           name="csvFile"
-          render={({ field: { onChange, value, ...rest } }) => ( // `value` is managed by react-hook-form
+          render={({ field: { onChange, value, ...rest } }) => ( 
             <FormItem>
-              <FormLabel>Upload CSV File (Alternative to Text Area)</FormLabel>
+              <FormLabel>Upload Data File (CSV or TSV)</FormLabel>
               <FormControl>
                 <Input
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,text/csv,.tsv,text/tab-separated-values"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     onChange(file || null);
                   }}
-                  // Do not spread `value` for file inputs as it's controlled differently
                   name={rest.name}
                   onBlur={rest.onBlur}
                   ref={rest.ref}
@@ -145,7 +153,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                 />
               </FormControl>
               <FormDescription>
-                Upload a .csv file. If provided, this will be used instead of the text area. Max 1MB.
+                Upload a .csv or .tsv file. If provided, this will be used instead of the text area. Max 1MB.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -243,7 +251,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                   type="password"
                   placeholder="Enter your Google AI API Key"
                   {...field}
-                  autoComplete="new-password" // To prevent autofill from other password fields
+                  autoComplete="new-password" 
                 />
               </FormControl>
               <FormDescription>

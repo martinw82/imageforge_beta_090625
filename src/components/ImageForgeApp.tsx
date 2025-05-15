@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { selectAiModel, type SelectAiModelInput } from "@/ai/flows/select-ai-model-flow";
 import { PromptForm, type PromptFormValuesSchema, promptFormSchema } from "./PromptForm";
 import { ImageGallery } from "./ImageGallery";
-import { parseCsv } from "@/lib/csvParser";
+import { parseDelimitedText } from "@/lib/csvParser"; // Updated import
 import ImageForgeLogo from "./icons/ImageForgeLogo";
 import { Loader2, Image as ImageIcon, FileText } from "lucide-react";
 import NextImage from "next/image";
@@ -31,9 +31,9 @@ const defaultValues: PromptFormValuesSchema = {
 - **Color Palette**: Use only #0055FF (Blue), #FF0000 (Red), #FFFFFF (White), #1C2526 (Dark Gray).
 - **Resolution**: 1920x1080, 16:9.
 - **Negative Prompt**: Avoid blurry, cartoonish, overly complex, cluttered, low contrast.
-- **Using a Reference Image**: If you provide a reference image, your 'Scene Details' below (from the CSV) should describe how that image (e.g., a character or logo) should be integrated or modified. For example: "Place the character from the reference image into a bustling marketplace scene," or "Render the object described below in the style of the provided reference logo."
+- **Using a Reference Image**: If you provide a reference image, your 'Scene Details' below (from the CSV/TSV) should describe how that image (e.g., a character or logo) should be integrated or modified. For example: "Place the character from the reference image into a bustling marketplace scene," or "Render the object described below in the style of the provided reference logo."
 
-**Scene Details** (Based on the following data from each CSV row):`,
+**Scene Details** (Based on the following data from each CSV/TSV row):`,
   csvText: `Concept,Scene,Bob's Action,Props/Elements,Mood/Tone
 Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist with his robotic arm,Scorecard with Product Community Security Economics Operations,Bob looks thoughtful visualizes readiness quiz
 Decentralized Governance,DAO Hub with floating charts,Bob presenting holographic DAO,Community avatars data streams,Optimistic collaborative
@@ -50,7 +50,7 @@ export default function ImageForgeApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState("");
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
-  const [uploadedCsvFileName, setUploadedCsvFileName] = useState<string | null>(null);
+  const [uploadedDataFileName, setUploadedDataFileName] = useState<string | null>(null); // Renamed
   const { toast } = useToast();
 
   const form = useForm<PromptFormValuesSchema>({
@@ -59,7 +59,7 @@ export default function ImageForgeApp() {
   });
 
   const watchedReferenceImage = form.watch("referenceImage");
-  const watchedCsvFile = form.watch("csvFile");
+  const watchedCsvFile = form.watch("csvFile"); // Name remains csvFile in form state
 
   useEffect(() => {
     if (watchedReferenceImage instanceof File) {
@@ -75,9 +75,9 @@ export default function ImageForgeApp() {
 
   useEffect(() => {
     if (watchedCsvFile instanceof File) {
-      setUploadedCsvFileName(watchedCsvFile.name);
+      setUploadedDataFileName(watchedCsvFile.name);
     } else if (watchedCsvFile === null) {
-      setUploadedCsvFileName(null);
+      setUploadedDataFileName(null);
     }
   }, [watchedCsvFile]);
 
@@ -119,45 +119,56 @@ export default function ImageForgeApp() {
       }
     }
 
-    let csvContentToParse: string;
+    let dataTextToParse: string;
+    let fileTypeHint: "CSV" | "TSV" = "CSV"; // Default to CSV
+
     if (data.csvFile instanceof File) {
-      setProgressMessage("Reading CSV file...");
+      const uploadedFile = data.csvFile;
+      const fileName = uploadedFile.name.toLowerCase();
+      if (fileName.endsWith(".tsv") || uploadedFile.type === "text/tab-separated-values") {
+        fileTypeHint = "TSV";
+      }
+      setProgressMessage(`Reading ${fileTypeHint} file...`);
       try {
-        csvContentToParse = await new Promise<string>((resolve, reject) => {
+        dataTextToParse = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = (error) => reject(error);
-          reader.readAsText(data.csvFile);
+          reader.readAsText(uploadedFile);
         });
       } catch (error) {
-        console.error("Error reading CSV file:", error);
+        console.error(`Error reading ${fileTypeHint} file:`, error);
         toast({
           variant: "destructive",
-          title: "Error Reading CSV File",
-          description: "Could not process the uploaded CSV file. Please check the file and try again.",
+          title: `Error Reading ${fileTypeHint} File`,
+          description: `Could not process the uploaded ${fileTypeHint} file. Please check the file and try again.`,
         });
         setIsLoading(false);
         return;
       }
     } else if (data.csvText && data.csvText.trim() !== "") {
-      csvContentToParse = data.csvText;
+      dataTextToParse = data.csvText;
+      // Attempt to infer if pasted text is TSV (simple check, might not be foolproof)
+      if (dataTextToParse.includes('\t') && !dataTextToParse.includes(',')) {
+          fileTypeHint = "TSV";
+      }
     } else {
-      // This case should ideally be caught by Zod superRefine
       toast({
         variant: "destructive",
-        title: "No CSV Data Provided",
-        description: "Please either paste CSV data into the text area or upload a CSV file.",
+        title: "No Data Provided",
+        description: "Please either paste CSV/TSV data into the text area or upload a CSV/TSV file.",
       });
       setIsLoading(false);
       return;
     }
-    setProgressMessage("Parsing CSV data...");
-    const parseResult = parseCsv(csvContentToParse);
+    setProgressMessage(`Parsing ${fileTypeHint} data...`);
+    const delimiter = fileTypeHint === "TSV" ? "\t" : ",";
+    const parseResult = parseDelimitedText(dataTextToParse, delimiter);
 
     if ("error" in parseResult) {
       toast({
         variant: "destructive",
-        title: "CSV Parsing Error",
+        title: `${fileTypeHint} Parsing Error`,
         description: parseResult.error,
       });
       setIsLoading(false);
@@ -169,7 +180,7 @@ export default function ImageForgeApp() {
       toast({
         variant: "destructive",
         title: "No Data",
-        description: "CSV data resulted in no rows to process.",
+        description: `${fileTypeHint} data resulted in no rows to process.`,
       });
       setIsLoading(false);
       return;
@@ -180,16 +191,16 @@ export default function ImageForgeApp() {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setProgressMessage(\`Generating image \${i + 1} of \${rows.length}...\`);
+      setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
       const formattedRowData = formatRowData(row);
 
-      let fullPrompt = \`\${data.startPrompt}\n\${formattedRowData}\n\${data.endPrompt}\`;
+      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
       fullPrompt = fullPrompt.trim();
 
       const firstColumnKey = Object.keys(row)[0];
-      let fileNameBase = row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || \`image_\${i + 1}\`;
+      let fileNameBase = row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || `image_${i + 1}`;
       if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {
-          fileNameBase = \`image_\${i + 1}\`;
+          fileNameBase = `image_${i + 1}`;
       }
 
       try {
@@ -213,13 +224,13 @@ export default function ImageForgeApp() {
         console.error("Error generating image for row:", row, error);
         toast({
           variant: "destructive",
-          title: \`Error generating image for row \${i + 1}\`,
+          title: `Error generating image for row ${i + 1}`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
       }
 
       if (delayBetweenGenerations > 0 && i < rows.length - 1) {
-        setProgressMessage(\`Waiting for \${delayBetweenGenerations} seconds before generating image \${i + 2}...\`);
+        setProgressMessage(`Waiting for ${delayBetweenGenerations} seconds before generating image ${i + 2}...`);
         await new Promise(resolve => setTimeout(resolve, delayBetweenGenerations * 1000));
       }
     }
@@ -228,7 +239,7 @@ export default function ImageForgeApp() {
     if (newImages.length > 0) {
        toast({
         title: "Success!",
-        description: \`Successfully generated \${newImages.length} images.\`,
+        description: `Successfully generated ${newImages.length} images.`,
         variant: "default",
         className: "bg-accent text-accent-foreground rounded-md shadow-lg"
       });
@@ -250,7 +261,7 @@ export default function ImageForgeApp() {
           <h1 className="text-4xl font-bold text-primary">ImageForge</h1>
         </div>
         <p className="text-muted-foreground mt-2">
-          Generate multiple images from CSV data using AI, with consistent elements and optional reference images.
+          Generate multiple images from CSV or TSV data using AI, with consistent elements and optional reference images.
         </p>
       </header>
 
@@ -275,13 +286,13 @@ export default function ImageForgeApp() {
                     />
                   </div>
                 )}
-                {uploadedCsvFileName && (
+                {uploadedDataFileName && (
                    <div className="p-3 border rounded-lg bg-muted/50">
                     <h3 className="text-xs font-medium text-foreground mb-1.5 flex items-center">
                       <FileText className="h-4 w-4 mr-2 text-primary" />
-                      Uploaded CSV:
+                      Uploaded Data File:
                     </h3>
-                    <p className="text-sm text-foreground truncate">{uploadedCsvFileName}</p>
+                    <p className="text-sm text-foreground truncate">{uploadedDataFileName}</p>
                   </div>
                 )}
               </div>

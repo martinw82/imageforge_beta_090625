@@ -5,7 +5,8 @@ import type React from "react";
 import { useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+// z is imported from zod directly for client-side schema validation
+import { z } from "zod"; 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,7 @@ Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist w
 Decentralized Governance,DAO Hub with floating charts,Bob presenting holographic DAO,Community avatars data streams,Optimistic collaborative
 Blockchain Security,Fortified Data Core Facility,Bob shielding data core with arm,Network nodes glowing firewalls,Secure vigilant`,
   endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
+  apiKey: "", // Added apiKey default
 };
 
 export default function ImageForgeApp() {
@@ -54,10 +56,10 @@ export default function ImageForgeApp() {
       .map(([key, value]) => {
         const formattedKey = key
           .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+          .replace(/\b\w/g, l => l.toUpperCase()); 
         return `- **${formattedKey}**: ${value}`;
       })
-      .join('\n'); // Join with newline for itemized list
+      .join('\n'); 
   };
 
   const onSubmit: SubmitHandler<PromptFormValuesSchema> = async (data) => {
@@ -99,11 +101,14 @@ export default function ImageForgeApp() {
       try {
         const aiInput: SelectAiModelInput = {
           prompt: fullPrompt,
+          apiKey: data.apiKey // Pass the apiKey from form data
         };
         
         const result = await selectAiModel(aiInput);
         newImages.push({ imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt });
-        setGeneratedImages(prevImages => [...prevImages.slice(0, i), { imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt }, ...prevImages.slice(i + 1)]);
+        // Update state incrementally to show images as they are generated
+        setGeneratedImages(prevImages => [...prevImages, { imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt }]);
+
       } catch (error) {
         console.error("Error generating image for row:", row, error);
         toast({
@@ -113,14 +118,24 @@ export default function ImageForgeApp() {
         });
       }
     }
+    
+    // Corrected state update to reflect all generated images at the end if incremental update is not preferred
+    // For incremental, the current setGeneratedImages inside the loop is fine.
+    // If a final update is desired: setGeneratedImages(newImages);
 
-    setProgressMessage(newImages.length > 0 ? "Image generation complete!" : "No images were generated.");
+    setProgressMessage(newImages.length > 0 ? "Image generation complete!" : "No images were generated, or all failed.");
     if (newImages.length > 0) {
        toast({
         title: "Success!",
         description: `Successfully generated ${newImages.length} images.`,
         variant: "default",
         className: "bg-accent text-accent-foreground"
+      });
+    } else if (rows.length > 0) { // If there were rows but no images, it means all failed
+      toast({
+        variant: "destructive",
+        title: "Image Generation Failed",
+        description: "No images were generated. Check console for errors.",
       });
     }
     setIsLoading(false);
@@ -187,4 +202,3 @@ export default function ImageForgeApp() {
     </div>
   );
 }
-

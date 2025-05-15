@@ -5,9 +5,7 @@ import type { UseFormReturn, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-// Input component is no longer needed here as imageSize and imageStyle are removed.
-// import { Input } from "@/components/ui/input"; 
-// import { Label } from "@/components/ui/label"; // No longer needed if Input fields are removed
+import { Input } from "@/components/ui/input"; 
 import {
   Form,
   FormControl,
@@ -21,10 +19,12 @@ import { Loader2 } from "lucide-react";
 
 // Schema updated: imageSize and imageStyle are removed.
 // These are now part of the startPrompt.
+// Added apiKey field.
 export const promptFormSchema = z.object({
   startPrompt: z.string().min(1, "Start prompt (including consistency rules) is required."),
   csvText: z.string().min(1, "CSV data is required."),
   endPrompt: z.string().min(1, "End prompt is required."),
+  apiKey: z.string().optional(),
 });
 
 export type PromptFormValuesSchema = z.infer<typeof promptFormSchema>;
@@ -66,7 +66,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
               <FormLabel>CSV Data (Scene Details)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="header1,header2,header3&#10;value1a,value2a,value3a&#10;value1b,value2b,value3b"
+                  placeholder="Concept,Scene,Bob's Action,Props/Elements,Mood/Tone&#10;Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist...,Scorecard with labels,Bob looks thoughtful...&#10;Decentralized Governance,DAO Hub with charts,Bob presenting DAO,Community avatars,Optimistic..."
                   className="resize-y min-h-[150px] font-mono text-sm"
                   {...field}
                 />
@@ -85,7 +85,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
               <FormLabel>End Prompt (Reinforce Consistency)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g., Ensure high consistency with defined rules."
+                  placeholder="e.g., The image must be highly consistent with previous outputs in Bob’s design, art style..."
                   className="resize-y min-h-[80px]"
                   {...field}
                 />
@@ -96,7 +96,28 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
           )}
         />
         
-        {/* ImageSize and ImageStyle FormFields are removed as these are now part of startPrompt */}
+        <FormField
+          control={form.control}
+          name="apiKey"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Google AI API Key (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter your Google AI API Key"
+                  {...field}
+                  autoComplete="off"
+                />
+              </FormControl>
+              <FormDescription>
+                If provided, this key will be used for image generation. Otherwise, the server's pre-configured key (if any) will be used. 
+                For production, API keys should be set as environment variables on the server.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
           {isLoading ? (

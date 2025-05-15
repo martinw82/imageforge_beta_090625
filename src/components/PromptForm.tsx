@@ -5,7 +5,7 @@ import type { UseFormReturn, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input"; 
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -17,14 +17,23 @@ import {
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
 
-// Schema updated: imageSize and imageStyle are removed.
-// These are now part of the startPrompt.
-// Added apiKey field.
 export const promptFormSchema = z.object({
   startPrompt: z.string().min(1, "Start prompt (including consistency rules) is required."),
   csvText: z.string().min(1, "CSV data is required."),
   endPrompt: z.string().min(1, "End prompt is required."),
   apiKey: z.string().optional(),
+  referenceImage: z
+    .instanceof(typeof File !== 'undefined' ? File : Object)
+    .optional()
+    .nullable()
+    .refine(
+      (file) => !file || file.size <= 5 * 1024 * 1024, // 5MB limit
+      `Reference image must be less than 5MB.`
+    )
+    .refine(
+      (file) => !file || (file.type && file.type.startsWith("image/")),
+      `Reference file must be an image.`
+    ),
 });
 
 export type PromptFormValuesSchema = z.infer<typeof promptFormSchema>;
@@ -95,7 +104,33 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
             </FormItem>
           )}
         />
-        
+
+        <FormField
+          control={form.control}
+          name="referenceImage"
+          render={({ field: { onChange, value, ...rest } }) => (
+            <FormItem>
+              <FormLabel>Reference Image (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    onChange(file || null);
+                  }}
+                  {...rest}
+                  className="file:text-primary file:font-medium"
+                />
+              </FormControl>
+              <FormDescription>
+                Upload an image (e.g., character, logo) to be used as a reference by the AI. Max 5MB.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="apiKey"
@@ -107,11 +142,11 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                   type="password"
                   placeholder="Enter your Google AI API Key"
                   {...field}
-                  autoComplete="off"
+                  autoComplete="new-password" // To prevent autofill from other password fields
                 />
               </FormControl>
               <FormDescription>
-                If provided, this key will be used for image generation. Otherwise, the server's pre-configured key (if any) will be used. 
+                If provided, this key will be used for image generation. Otherwise, the server's pre-configured key (if any) will be used.
                 For production, API keys should be set as environment variables on the server.
               </FormDescription>
               <FormMessage />

@@ -2,11 +2,10 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-// z is imported from zod directly for client-side schema validation
-import { z } from "zod"; 
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +14,8 @@ import { PromptForm, type PromptFormValuesSchema, promptFormSchema } from "./Pro
 import { ImageGallery } from "./ImageGallery";
 import { parseCsv } from "@/lib/csvParser";
 import ImageForgeLogo from "./icons/ImageForgeLogo";
-import { Loader2 } from "lucide-react";
+import { Loader2, Image as ImageIcon } from "lucide-react";
+import NextImage from "next/image";
 
 interface GeneratedImage {
   imageUrl: string;
@@ -37,13 +37,15 @@ Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist w
 Decentralized Governance,DAO Hub with floating charts,Bob presenting holographic DAO,Community avatars data streams,Optimistic collaborative
 Blockchain Security,Fortified Data Core Facility,Bob shielding data core with arm,Network nodes glowing firewalls,Secure vigilant`,
   endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
-  apiKey: "", // Added apiKey default
+  apiKey: "",
+  referenceImage: null,
 };
 
 export default function ImageForgeApp() {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState("");
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<PromptFormValuesSchema>({
@@ -51,21 +53,58 @@ export default function ImageForgeApp() {
     defaultValues,
   });
 
+  const watchedReferenceImage = form.watch("referenceImage");
+
+  useEffect(() => {
+    if (watchedReferenceImage instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReferenceImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(watchedReferenceImage);
+    } else if (watchedReferenceImage === null) {
+      setReferenceImagePreview(null);
+    }
+  }, [watchedReferenceImage]);
+
+
   const formatRowData = (row: Record<string, string>): string => {
     return Object.entries(row)
       .map(([key, value]) => {
         const formattedKey = key
           .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase()); 
+          .replace(/\b\w/g, l => l.toUpperCase());
         return `- **${formattedKey}**: ${value}`;
       })
-      .join('\n'); 
+      .join('\n');
   };
 
   const onSubmit: SubmitHandler<PromptFormValuesSchema> = async (data) => {
     setIsLoading(true);
     setGeneratedImages([]);
     setProgressMessage("Starting image generation...");
+
+    let referenceImageDataUri: string | undefined = undefined;
+    if (data.referenceImage instanceof File) {
+      try {
+        referenceImageDataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(data.referenceImage);
+        });
+      } catch (error) {
+        console.error("Error reading reference image:", error);
+        toast({
+          variant: "destructive",
+          title: "Error Reading Image",
+          description: "Could not process the reference image. Please try again or select a different image.",
+        });
+        setIsLoading(false);
+        return;
+      }
+    }
+
 
     const parseResult = parseCsv(data.csvText);
     if ("error" in parseResult) {
@@ -92,46 +131,43 @@ export default function ImageForgeApp() {
     const newImages: GeneratedImage[] = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
+      setProgressMessage(\`Generating image \${i + 1} of \${rows.length}...\`);
       const formattedRowData = formatRowData(row);
-      
-      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
+
+      let fullPrompt = \`\${data.startPrompt}\n\${formattedRowData}\n\${data.endPrompt}\`;
       fullPrompt = fullPrompt.trim();
 
       try {
         const aiInput: SelectAiModelInput = {
           prompt: fullPrompt,
-          apiKey: data.apiKey // Pass the apiKey from form data
+          apiKey: data.apiKey,
+          referenceImageDataUri: referenceImageDataUri,
         };
-        
+
         const result = await selectAiModel(aiInput);
-        newImages.push({ imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt });
-        // Update state incrementally to show images as they are generated
-        setGeneratedImages(prevImages => [...prevImages, { imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt }]);
+        const newImage = { imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt };
+        newImages.push(newImage);
+        setGeneratedImages(prevImages => [...prevImages, newImage]);
 
       } catch (error) {
         console.error("Error generating image for row:", row, error);
         toast({
           variant: "destructive",
-          title: `Error generating image for row ${i + 1}`,
+          title: \`Error generating image for row \${i + 1}\`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
       }
     }
-    
-    // Corrected state update to reflect all generated images at the end if incremental update is not preferred
-    // For incremental, the current setGeneratedImages inside the loop is fine.
-    // If a final update is desired: setGeneratedImages(newImages);
 
     setProgressMessage(newImages.length > 0 ? "Image generation complete!" : "No images were generated, or all failed.");
     if (newImages.length > 0) {
        toast({
         title: "Success!",
-        description: `Successfully generated ${newImages.length} images.`,
+        description: \`Successfully generated \${newImages.length} images.\`,
         variant: "default",
-        className: "bg-accent text-accent-foreground"
+        className: "bg-accent text-accent-foreground rounded-md shadow-lg"
       });
-    } else if (rows.length > 0) { // If there were rows but no images, it means all failed
+    } else if (rows.length > 0) {
       toast({
         variant: "destructive",
         title: "Image Generation Failed",
@@ -149,7 +185,7 @@ export default function ImageForgeApp() {
           <h1 className="text-4xl font-bold text-primary">ImageForge</h1>
         </div>
         <p className="text-muted-foreground mt-2">
-          Generate multiple images from CSV data using AI, with consistent elements.
+          Generate multiple images from CSV data using AI, with consistent elements and optional reference images.
         </p>
       </header>
 
@@ -161,6 +197,18 @@ export default function ImageForgeApp() {
             </CardHeader>
             <CardContent>
               <PromptForm form={form} onSubmit={form.handleSubmit(onSubmit)} isLoading={isLoading} />
+              {referenceImagePreview && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                  <h3 className="text-sm font-medium text-foreground mb-2">Reference Image Preview:</h3>
+                  <NextImage
+                    src={referenceImagePreview}
+                    alt="Reference image preview"
+                    width={100}
+                    height={100}
+                    className="rounded-md object-contain max-h-32 w-auto"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -177,12 +225,12 @@ export default function ImageForgeApp() {
               )}
               {!isLoading && generatedImages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-image-off h-16 w-16 text-muted-foreground mb-4"><path d="M21.16 21.16 2.84 2.84"/><path d="M11.35 3H19a2 2 0 0 1 2 2v8.65m-7.83 7.83A2 2 0 0 1 5 21H5a2 2 0 0 1-2-2v-2.55"/><path d="M14.54 12.46 5 22"/><path d="m17 7-2.5-2.5"/><path d="M5 12V5a2 2 0 0 1 2-2h4.55"/></svg>
+                   <ImageIcon className="h-16 w-16 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
                     Your generated images will appear here.
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Configure your prompts and data, then click "Generate Images".
+                    Configure your prompts, data, and optionally a reference image, then click "Generate Images".
                   </p>
                 </div>
               )}

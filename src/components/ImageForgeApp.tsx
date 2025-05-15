@@ -39,6 +39,7 @@ Blockchain Security,Fortified Data Core Facility,Bob shielding data core with ar
   endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
   apiKey: "",
   referenceImage: null,
+  delaySeconds: 0,
 };
 
 export default function ImageForgeApp() {
@@ -129,6 +130,8 @@ export default function ImageForgeApp() {
     }
 
     const newImages: GeneratedImage[] = [];
+    const delayBetweenGenerations = data.delaySeconds || 0;
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
@@ -156,6 +159,11 @@ export default function ImageForgeApp() {
           title: `Error generating image for row ${i + 1}`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
+      }
+
+      if (delayBetweenGenerations > 0 && i < rows.length - 1) {
+        setProgressMessage(`Waiting for ${delayBetweenGenerations} seconds before generating image ${i + 2}...`);
+        await new Promise(resolve => setTimeout(resolve, delayBetweenGenerations * 1000));
       }
     }
 

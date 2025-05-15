@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Form,
   FormControl,
   FormDescription,
@@ -34,6 +41,7 @@ export const promptFormSchema = z.object({
       (file) => !file || (file.type && file.type.startsWith("image/")),
       `Reference file must be an image.`
     ),
+  delaySeconds: z.number().min(0).optional().default(0),
 });
 
 export type PromptFormValuesSchema = z.infer<typeof promptFormSchema>;
@@ -130,6 +138,37 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="delaySeconds"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Delay Between Generations</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                defaultValue={String(field.value || 0)}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a delay" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="0">No delay</SelectItem>
+                  <SelectItem value="10">10 seconds</SelectItem>
+                  <SelectItem value="20">20 seconds</SelectItem>
+                  <SelectItem value="30">30 seconds</SelectItem>
+                  <SelectItem value="60">1 minute</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Wait for a specified duration after each image generation (optional).
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -146,8 +185,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                 />
               </FormControl>
               <FormDescription>
-                If provided, this key will be used for image generation. Otherwise, the server's pre-configured key (if any) will be used.
-                For production, API keys should be set as environment variables on the server.
+                If provided, this key will be used. Otherwise, server's pre-configured key (if any) is used. For production, set keys as server environment variables.
               </FormDescription>
               <FormMessage />
             </FormItem>

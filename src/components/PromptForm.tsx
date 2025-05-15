@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { UseFormReturn, SubmitHandler } from "react-hook-form";
@@ -21,7 +22,7 @@ export const promptFormSchema = z.object({
   startPrompt: z.string().min(1, "Start prompt is required."),
   csvText: z.string().min(1, "CSV data is required."),
   endPrompt: z.string().min(1, "End prompt is required."),
-  modelName: z.string().min(1, "Model name is required."),
+  // modelName: z.string().min(1, "Model name is required."), // Removed
   imageSize: z.string().optional(),
   imageStyle: z.string().optional(),
 });
@@ -96,20 +97,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
         />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="modelName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>AI Model Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., googleai/gemini-2.0-flash-exp" {...field} />
-                </FormControl>
-                <FormDescription>Specify the AI model for generation.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* ModelName FormField removed */}
            <FormField
             control={form.control}
             name="imageSize"
@@ -119,29 +107,29 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                 <FormControl>
                   <Input placeholder="e.g., 1024x1024" {...field} />
                 </FormControl>
-                 <FormDescription>Desired image dimensions.</FormDescription>
+                 <FormDescription>Guidance for desired image dimensions (included in prompt).</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="imageStyle"
+            render={({ field }) => (
+              <FormItem className="sm:col-start-2">
+                <FormLabel>Image Style (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., photorealistic, artistic" {...field} />
+                </FormControl>
+                <FormDescription>Preferred visual style for images (included in prompt).</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        <FormField
-            control={form.control}
-            name="imageStyle"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Image Style (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., photorealistic, artistic" {...field} />
-                </FormControl>
-                <FormDescription>Preferred visual style for images.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -155,3 +143,4 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
     </Form>
   );
 }
+

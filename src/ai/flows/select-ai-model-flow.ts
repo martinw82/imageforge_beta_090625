@@ -14,9 +14,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SelectAiModelInputSchema = z.object({
-  modelName: z.string().describe('The name of the AI model to use (e.g., DALL-E, Gemini).'),
-  imageSize: z.string().optional().describe('The desired image size (e.g., 1024x1024).'),
-  style: z.string().optional().describe('The desired image style (e.g., realistic, artistic).'),
+  imageSize: z.string().optional().describe('Guidance for desired image size to include in the text prompt (e.g., "1024x1024"). This influences the generated image content.'),
+  style: z.string().optional().describe('Guidance for desired image style to include in the text prompt (e.g., "photorealistic", "artistic"). This influences the generated image content.'),
   prompt: z.string().describe('The text prompt for image generation.'),
 });
 export type SelectAiModelInput = z.infer<typeof SelectAiModelInputSchema>;
@@ -35,7 +34,7 @@ const selectAiModelPrompt = ai.definePrompt({
   name: 'selectAiModelPrompt',
   input: {schema: SelectAiModelInputSchema},
   output: {schema: SelectAiModelOutputSchema},
-  prompt: `Generate an image based on the following prompt, using the specified model and parameters:\n\nPrompt: {{{prompt}}}\nModel: {{{modelName}}}\nImage Size: {{{imageSize}}}\nStyle: {{{style}}}\n\nEnsure the image is appropriate based on the prompt.`,
+  prompt: `Generate an image based on the following prompt and parameters:\n\nPrompt: {{{prompt}}}\nImage Size: {{{imageSize}}}\nStyle: {{{style}}}\n\nEnsure the image is appropriate based on the prompt.`,
 });
 
 const selectAiModelFlow = ai.defineFlow(
@@ -49,16 +48,19 @@ const selectAiModelFlow = ai.defineFlow(
       // IMPORTANT: ONLY the googleai/gemini-2.0-flash-exp model is able to generate images. You MUST use exactly this model to generate images.
       model: 'googleai/gemini-2.0-flash-exp',
 
-      prompt: input.prompt,
+      prompt: input.prompt, // The main prompt content is passed here
 
       config: {
         responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE, IMAGE only won't work
       },
     });
 
+    // The full prompt used for generation, including start/end and row data, is already in input.prompt
+    // The altText can be based on this combined prompt.
     return {
       imageUrl: media.url,
-      altText: input.prompt,
+      altText: input.prompt, // This `input.prompt` is the full, combined prompt.
     };
   }
 );
+

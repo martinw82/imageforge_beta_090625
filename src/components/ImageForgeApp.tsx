@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from "react";
@@ -25,7 +26,7 @@ const defaultValues: PromptFormValuesSchema = {
   startPrompt: "A detailed image of a product:",
   csvText: "product_name,feature,color\nT-Shirt,logo,blue\nCoffee Mug,quote,white",
   endPrompt: "Ensure the style is vibrant and appealing.",
-  modelName: "googleai/gemini-2.0-flash-exp", // This is what the flow uses for images
+  // modelName: "googleai/gemini-2.0-flash-exp", // Removed as model is fixed in flow
   imageSize: "1024x1024",
   imageStyle: "photorealistic",
 };
@@ -43,7 +44,7 @@ export default function ImageForgeApp() {
 
   const formatRowData = (row: Record<string, string>): string => {
     return Object.entries(row)
-      .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`) // Replace underscores in keys for better readability
+      .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`)
       .join(', ');
   };
 
@@ -79,20 +80,34 @@ export default function ImageForgeApp() {
       const row = rows[i];
       setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
       const formattedRowData = formatRowData(row);
-      const fullPrompt = `${data.startPrompt} ${formattedRowData} ${data.endPrompt}`.trim();
+      
+      // Construct the full prompt including size and style guidance for the AI model
+      let fullPrompt = `${data.startPrompt} ${formattedRowData} ${data.endPrompt}`;
+      if (data.imageSize) {
+        fullPrompt += ` Image Size: ${data.imageSize}.`;
+      }
+      if (data.imageStyle) {
+        fullPrompt += ` Style: ${data.imageStyle}.`;
+      }
+      fullPrompt = fullPrompt.trim();
+
 
       try {
+        // The selectAiModel input schema now expects prompt, imageSize, and style directly
+        // but imageSize and style are for prompt *construction* rather than direct API params.
+        // The flow's internal prompt template will incorporate them if it's designed to.
+        // For the current selectAiModelFlow, we pass the fully constructed prompt directly.
+        // We also pass imageSize and style so the flow can use them in its internal prompt if needed,
+        // or for logging/metadata, even if our current flow prompt template incorporates them directly.
         const aiInput: SelectAiModelInput = {
-          prompt: fullPrompt,
-          modelName: data.modelName,
-          imageSize: data.imageSize,
-          style: data.imageStyle,
+          prompt: fullPrompt, // This is the complete prompt
+          imageSize: data.imageSize, // Pass along for potential use or if flow's prompt needs it separately
+          style: data.imageStyle,   // Pass along for potential use
         };
-        // console.log("Sending to AI:", aiInput);
+        
         const result = await selectAiModel(aiInput);
-        // console.log("Received from AI:", result);
         newImages.push({ imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt });
-        setGeneratedImages([...newImages]); // Update incrementally
+        setGeneratedImages([...newImages]); 
       } catch (error) {
         console.error("Error generating image for row:", row, error);
         toast({
@@ -100,7 +115,6 @@ export default function ImageForgeApp() {
           title: `Error generating image for row ${i + 1}`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
-        // Optionally, decide if you want to stop or continue
       }
     }
 
@@ -117,7 +131,7 @@ export default function ImageForgeApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col p-4 md:p-8">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 bg-background">
       <header className="mb-8 text-center">
         <div className="inline-flex items-center gap-3">
           <ImageForgeLogo className="h-10 w-10 text-primary" />
@@ -130,18 +144,18 @@ export default function ImageForgeApp() {
 
       <main className="flex-grow container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <Card className="lg:col-span-4 shadow-lg">
+          <Card className="lg:col-span-4 shadow-lg rounded-lg">
             <CardHeader>
-              <CardTitle>Configuration</CardTitle>
+              <CardTitle className="text-foreground">Configuration</CardTitle>
             </CardHeader>
             <CardContent>
               <PromptForm form={form} onSubmit={form.handleSubmit(onSubmit)} isLoading={isLoading} />
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-8 shadow-lg">
+          <Card className="lg:col-span-8 shadow-lg rounded-lg">
             <CardHeader>
-              <CardTitle>Generated Images</CardTitle>
+              <CardTitle className="text-foreground">Generated Images</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading && (
@@ -169,7 +183,7 @@ export default function ImageForgeApp() {
         </div>
       </main>
 
-      <footer className="text-center mt-12 py-4 border-t">
+      <footer className="text-center mt-12 py-4 border-t border-border">
         <p className="text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} ImageForge. All rights reserved.
         </p>
@@ -177,3 +191,4 @@ export default function ImageForgeApp() {
     </div>
   );
 }
+

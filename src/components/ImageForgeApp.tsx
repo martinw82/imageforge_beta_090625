@@ -131,10 +131,10 @@ export default function ImageForgeApp() {
     const newImages: GeneratedImage[] = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setProgressMessage(\`Generating image \${i + 1} of \${rows.length}...\`);
+      setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
       const formattedRowData = formatRowData(row);
 
-      let fullPrompt = \`\${data.startPrompt}\n\${formattedRowData}\n\${data.endPrompt}\`;
+      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
       fullPrompt = fullPrompt.trim();
 
       try {
@@ -153,7 +153,7 @@ export default function ImageForgeApp() {
         console.error("Error generating image for row:", row, error);
         toast({
           variant: "destructive",
-          title: \`Error generating image for row \${i + 1}\`,
+          title: `Error generating image for row ${i + 1}`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
       }
@@ -163,7 +163,7 @@ export default function ImageForgeApp() {
     if (newImages.length > 0) {
        toast({
         title: "Success!",
-        description: \`Successfully generated \${newImages.length} images.\`,
+        description: `Successfully generated ${newImages.length} images.`,
         variant: "default",
         className: "bg-accent text-accent-foreground rounded-md shadow-lg"
       });

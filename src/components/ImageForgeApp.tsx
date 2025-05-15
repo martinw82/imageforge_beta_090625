@@ -21,6 +21,7 @@ interface GeneratedImage {
   imageUrl: string;
   altText: string;
   promptUsed: string;
+  fileNameHint: string;
 }
 
 const defaultValues: PromptFormValuesSchema = {
@@ -140,6 +141,14 @@ export default function ImageForgeApp() {
       let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
       fullPrompt = fullPrompt.trim();
 
+      // Determine filename hint
+      const firstColumnKey = Object.keys(row)[0];
+      let fileNameBase = row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || `image_${i + 1}`;
+      if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {
+          fileNameBase = `image_${i + 1}`;
+      }
+
+
       try {
         const aiInput: SelectAiModelInput = {
           prompt: fullPrompt,
@@ -148,7 +157,12 @@ export default function ImageForgeApp() {
         };
 
         const result = await selectAiModel(aiInput);
-        const newImage = { imageUrl: result.imageUrl, altText: result.altText, promptUsed: fullPrompt };
+        const newImage = {
+          imageUrl: result.imageUrl,
+          altText: result.altText,
+          promptUsed: fullPrompt,
+          fileNameHint: fileNameBase
+        };
         newImages.push(newImage);
         setGeneratedImages(prevImages => [...prevImages, newImage]);
 

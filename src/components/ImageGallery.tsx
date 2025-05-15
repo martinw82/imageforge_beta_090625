@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -14,8 +15,9 @@ import { Download } from "lucide-react";
 
 interface GeneratedImage {
   imageUrl: string;
-  altText: string; // This usually contains the full prompt from the AI flow
-  promptUsed: string; // The full prompt constructed by the app
+  altText: string; 
+  promptUsed: string; 
+  fileNameHint: string;
 }
 
 interface ImageGalleryProps {
@@ -27,16 +29,16 @@ export function ImageGallery({ images }: ImageGalleryProps) {
     return null; 
   }
 
-  const handleDownload = async (imageUrl: string, prompt: string) => {
+  const handleDownload = async (imageUrl: string, fileNameHint: string) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      // Sanitize prompt for filename
-      const fileNameSafePrompt = prompt.substring(0, 50).replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      a.download = `imageforge_${fileNameSafePrompt || 'generated_image'}.${blob.type.split('/')[1] || 'png'}`;
+      // Sanitize fileNameHint for filename
+      const safeFileName = fileNameHint.substring(0, 50).replace(/[^a-z0-9_.-]/gi, '_').toLowerCase();
+      a.download = `imageforge_${safeFileName || 'generated_image'}.${blob.type.split('/')[1] || 'png'}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -82,7 +84,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
                 variant="outline" 
                 size="sm" 
                 className="mt-3 w-full"
-                onClick={() => handleDownload(image.imageUrl, image.promptUsed)}
+                onClick={() => handleDownload(image.imageUrl, image.fileNameHint)}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Download

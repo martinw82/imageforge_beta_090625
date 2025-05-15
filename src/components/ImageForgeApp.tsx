@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { selectAiModel, type SelectAiModelInput } from "@/ai/flows/select-ai-model-flow";
 import { PromptForm, type PromptFormValuesSchema, promptFormSchema } from "./PromptForm";
 import { ImageGallery } from "./ImageGallery";
-import { parseDelimitedText } from "@/lib/csvParser"; // Updated import
+import { parseDelimitedText } from "@/lib/csvParser";
 import ImageForgeLogo from "./icons/ImageForgeLogo";
 import { Loader2, Image as ImageIcon, FileText } from "lucide-react";
 import NextImage from "next/image";
@@ -50,7 +50,7 @@ export default function ImageForgeApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState("");
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
-  const [uploadedDataFileName, setUploadedDataFileName] = useState<string | null>(null); // Renamed
+  const [uploadedDataFileName, setUploadedDataFileName] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<PromptFormValuesSchema>({
@@ -59,7 +59,7 @@ export default function ImageForgeApp() {
   });
 
   const watchedReferenceImage = form.watch("referenceImage");
-  const watchedCsvFile = form.watch("csvFile"); // Name remains csvFile in form state
+  const watchedCsvFile = form.watch("csvFile");
 
   useEffect(() => {
     if (watchedReferenceImage instanceof File) {
@@ -120,7 +120,7 @@ export default function ImageForgeApp() {
     }
 
     let dataTextToParse: string;
-    let fileTypeHint: "CSV" | "TSV" = "CSV"; // Default to CSV
+    let fileTypeHint: "CSV" | "TSV" = "CSV"; 
 
     if (data.csvFile instanceof File) {
       const uploadedFile = data.csvFile;
@@ -148,7 +148,6 @@ export default function ImageForgeApp() {
       }
     } else if (data.csvText && data.csvText.trim() !== "") {
       dataTextToParse = data.csvText;
-      // Attempt to infer if pasted text is TSV (simple check, might not be foolproof)
       if (dataTextToParse.includes('\t') && !dataTextToParse.includes(',')) {
           fileTypeHint = "TSV";
       }
@@ -283,6 +282,7 @@ export default function ImageForgeApp() {
                       width={80}
                       height={80}
                       className="rounded-md object-contain max-h-24 w-auto"
+                      data-ai-hint="user uploaded"
                     />
                   </div>
                 )}
@@ -337,3 +337,4 @@ export default function ImageForgeApp() {
     </div>
   );
 }
+

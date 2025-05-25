@@ -129,7 +129,7 @@ export default function ImageForgeApp() {
       if (fileName.endsWith(".tsv") || uploadedFile.type === "text/tab-separated-values") {
         fileTypeHint = "TSV";
       }
-      setProgressMessage(\`Reading \${fileTypeHint} file...\`);
+      setProgressMessage(`Reading ${fileTypeHint} file...`);
       try {
         dataTextToParse = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -138,11 +138,11 @@ export default function ImageForgeApp() {
           reader.readAsText(uploadedFile);
         });
       } catch (error) {
-        console.error(\`Error reading \${fileTypeHint} file:\`, error);
+        console.error(`Error reading ${fileTypeHint} file:`, error);
         toast({
           variant: "destructive",
-          title: \`Error Reading \${fileTypeHint} File\`,
-          description: \`Could not process the uploaded \${fileTypeHint} file. Please check the file and try again.\`,
+          title: `Error Reading ${fileTypeHint} File`,
+          description: `Could not process the uploaded ${fileTypeHint} file. Please check the file and try again.`,
         });
         setIsLoading(false);
         return;
@@ -161,14 +161,14 @@ export default function ImageForgeApp() {
       setIsLoading(false);
       return;
     }
-    setProgressMessage(\`Parsing \${fileTypeHint} data...\`);
+    setProgressMessage(`Parsing ${fileTypeHint} data...`);
     const delimiter = fileTypeHint === "TSV" ? "\t" : ",";
     const parseResult = parseDelimitedText(dataTextToParse, delimiter);
 
     if ("error" in parseResult) {
       toast({
         variant: "destructive",
-        title: \`\${fileTypeHint} Parsing Error\`,
+        title: `${fileTypeHint} Parsing Error`,
         description: parseResult.error,
       });
       setIsLoading(false);
@@ -180,7 +180,7 @@ export default function ImageForgeApp() {
       toast({
         variant: "destructive",
         title: "No Data",
-        description: \`\${fileTypeHint} data resulted in no rows to process.\`,
+        description: `${fileTypeHint} data resulted in no rows to process.`,
       });
       setIsLoading(false);
       return;
@@ -191,19 +191,18 @@ export default function ImageForgeApp() {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setProgressMessage(\`Generating image \${i + 1} of \${rows.length}...\`);
+      setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
       const formattedRowData = formatRowData(row);
 
-      let fullPrompt = \`\${data.startPrompt}\n\${formattedRowData}\n\${data.endPrompt}\`;
+      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
       fullPrompt = fullPrompt.trim();
 
       const firstColumnKey = Object.keys(row)[0];
       // Try to use "Video_Title_Concept" or "Concept" for filename, then fallback to first column or generic.
-      let fileNameBase = row["Video_Title_Concept"] || row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || \`image_\${i + 1}\`;
+      let fileNameBase = row["Video_Title_Concept"] || row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || `image_${i + 1}`;
       if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {
-          fileNameBase = \`image_\${i + 1}\`;
+          fileNameBase = `image_${i + 1}`;
       }
-
 
       try {
         const aiInput: SelectAiModelInput = {
@@ -226,13 +225,13 @@ export default function ImageForgeApp() {
         console.error("Error generating image for row:", row, error);
         toast({
           variant: "destructive",
-          title: \`Error generating image for row \${i + 1}\`,
+          title: `Error generating image for row ${i + 1}`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
       }
 
       if (delayBetweenGenerations > 0 && i < rows.length - 1) {
-        setProgressMessage(\`Waiting for \${delayBetweenGenerations} seconds before generating image \${i + 2}...\`);
+        setProgressMessage(`Waiting for ${delayBetweenGenerations} seconds before generating image ${i + 2}...`);
         await new Promise(resolve => setTimeout(resolve, delayBetweenGenerations * 1000));
       }
     }
@@ -241,7 +240,7 @@ export default function ImageForgeApp() {
     if (newImages.length > 0) {
        toast({
         title: "Success!",
-        description: \`Successfully generated \${newImages.length} images.\`,
+        description: `Successfully generated ${newImages.length} images.`,
         variant: "default",
         className: "bg-accent text-accent-foreground rounded-md shadow-lg"
       });
@@ -342,4 +341,3 @@ export default function ImageForgeApp() {
     </div>
   );
 }
-

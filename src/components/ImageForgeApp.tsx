@@ -56,7 +56,7 @@ const promptTemplates: PromptTemplate[] = [
     name: "Comic Book Panels",
     startPrompt: `**Consistency Requirements** (Fixed Across All Panels):
 - **Art Style**: Dynamic and expressive comic book art style with bold lines and vibrant, cel-shaded colors.
-- **Consistent Character (Optional)**: If a character (e.g., 'Hero X') is central, define their appearance here (e.g., "Hero X: Muscular build, blue suit, red cape, determined expression"). Ensure character design is identical in every panel.
+- **Consistent Character (Optional)**: If a character (e.g., 'Hero X') is central, define their appearance here (e.g., "Hero X: Muscular build, blue suit, red cape, determined expression"). Ensure character design is identical in every panel if a reference image for the character is not used. If a reference image is used for the character, ensure its features are preserved.
 - **Panel Layout**: Each image represents one panel. Consider a consistent border style (e.g., "Thin black border around each panel").
 - **Speech/Thought Bubble Placeholder**: AI should leave clear, empty space for speech or thought bubbles to be added later. Do not generate text in bubbles.
 - **Resolution**: 800x1200 (portrait for typical comic panel).
@@ -92,7 +92,7 @@ const promptTemplates: PromptTemplate[] = [
     name: "Children's Story Illustrations",
     startPrompt: `**Consistency Requirements** (Fixed Across All Illustrations):
 - **Art Style**: Whimsical and charming watercolor illustration style, with soft edges and a warm, inviting color palette.
-- **Consistent Character**: Main character, "Pip the Squirrel," a small, fluffy squirrel with a bushy tail, bright curious eyes, and often wearing a tiny blue scarf. Pip's design must be identical in every illustration.
+- **Consistent Character**: Main character, "Pip the Squirrel," a small, fluffy squirrel with a bushy tail, bright curious eyes, and often wearing a tiny blue scarf. Pip's design must be identical in every illustration if a reference image for Pip is not used. If a reference image of Pip is used, ensure its features are preserved.
 - **Overall Mood**: Gentle, friendly, and magical.
 - **Color Palette Guidance**: Primary colors: Soft yellows (e.g., HSL(60, 100%, 80%)), gentle blues (e.g., HSL(200, 70%, 75%)), earthy browns and greens.
 - **Resolution**: 1200x800 (landscape for book spread).
@@ -104,6 +104,26 @@ const promptTemplates: PromptTemplate[] = [
 2,"A sunny forest path","Pip curiously sniffing a bright red mushroom","Tall green trees, butterflies, a friendly ladybug","Vibrant greens, blues, cheerful red accent"
 3,"A sparkling riverbank","Pip dipping a paw into the cool water, looking surprised","Shimmering water, smooth pebbles, a small fish peeking out","Cool blues, greens, sparkling highlights, curious"`,
     endPrompt: "Ensure the illustration maintains the gentle watercolor style and Pip's consistent appearance. The scene should be appropriate for a children's storybook."
+  },
+  {
+    id: "project-roadmap-crypto",
+    name: "Project Roadmap Visuals (Crypto/Blockchain)",
+    startPrompt: `**Consistency Requirements** (Fixed Across All Roadmap Images):
+- **Art Style**: Sleek, futuristic, and slightly abstract visual style with a professional and innovative tone, suitable for a tech or blockchain project roadmap. Images should feel interconnected or part of a larger journey or progression. Use clean lines and modern aesthetics.
+- **Consistent Element (Optional Project Logo/Icon)**: If a reference image is provided (e.g., project logo, recurring thematic icon), your 'Stage Details' should describe its subtle and consistent placement or integration in each roadmap visual.
+- **Color Palette**: Adhere to a core color palette to maintain brand consistency (e.g., Primary: #0A2540 (Deep Tech Blue), Accent: #4FD1C5 (Cyber Teal), Highlight: #FFFFFF (Bright White)). The AI will use these as strong suggestions, adaptable to the mood of each stage.
+- **Resolution**: 1600x900 (16:9 aspect ratio, suitable for presentations).
+- **Text Placeholders**: Do not generate detailed, legible text for milestones or labels. Instead, create visually distinct areas or stylized graphical elements where text can be overlaid later (e.g., clean rectangular boxes, abstract data readouts, glowing placeholder text shapes).
+- **Overall Feel**: Each image should convey progress, innovation, and clarity for the specific roadmap stage.
+- **Negative Prompt**: Avoid overly complex or cluttered scenes, cartoonish styles, inconsistent branding elements, blurry or low-resolution outputs, and generic stock photo aesthetics.
+
+**Stage Details** (Based on the following data from each CSV/TSV row - this defines each unique roadmap visual):`,
+    csvText: `Stage_Title,Visual_Metaphor_Concept,Key_Elements_to_Represent,Primary_Color_Focus_or_Mood
+"Phase 1: Genesis & Foundation","A single, intricate digital seed or core sprouting foundational lines of code or geometric structures. Sense of origin and stability.","Glowing core, abstract code patterns, foundational blocks, subtle network lines beginning to form.","Deep Tech Blue, with Cyber Teal highlights indicating initial energy."
+"Q2: Protocol Alpha Launch","A stylized, minimalist rocket or energy beam ascending from a platform, indicating launch and upward momentum.","Ascending rocket/beam, launchpad structure, initial data streams, subtle representation of a growing network.","Cyber Teal and Bright White, conveying motion and clarity. Accents of a vibrant secondary color (e.g., #F2C94C - Tech Gold)."
+"Q3: Smart Contract Ecosystem Deployed","Interconnected hexagonal or circular nodes forming a complex, secure web. Some nodes are highlighted or show activity.","Network of nodes, secure-looking connections, abstract representations of smart contracts (e.g., glowing scripts, puzzle pieces fitting together).","Mix of Deep Tech Blue and Cyber Teal, with Bright White for active connections. Ensure a look of security and complexity handled with elegance."
+"Year 1: DAO Governance Live","Diverse, abstract figures or icons connecting to a central, illuminated symbol representing decentralized decision-making or voting.","Stylized user icons, lines converging on a central governance symbol (e.g., a balanced scale, a multi-faceted crystal), data flows representing proposals/votes.","A balanced palette incorporating the primary colors with an additional neutral like #A0AEC0 (Cool Gray) to represent diverse inputs. Central symbol could use Tech Gold."`,
+    endPrompt: "Ensure the image visually represents the specified roadmap stage with a futuristic and professional aesthetic. Maintain consistency in style, color usage, and the integration of any recurring branding elements (if a reference image was used) across all roadmap visuals. Clearly demarcate areas for future text overlays."
   }
 ];
 
@@ -193,7 +213,7 @@ export default function ImageForgeApp() {
     }
 
     let dataTextToParse: string;
-    let fileTypeHint: "CSV" | "TSV" = "CSV";
+    let fileTypeHint: "CSV" | "TSV" = "CSV"; // Default to CSV
 
     if (data.csvFile instanceof File) {
       const uploadedFile = data.csvFile;
@@ -271,13 +291,14 @@ export default function ImageForgeApp() {
       fullPrompt = fullPrompt.trim();
       
       const firstColumnKey = Object.keys(row)[0];
-      // Try to use "Video_Title_Concept", "Concept", "Panel_Number", "Product_Name", or "Page_Number" for filename
+      // Try to use specific keys first for better filename hint
       let fileNameBase = 
-        row["Video_Title_Concept"] || 
-        row["Concept"] || 
-        row["Panel_Number"] || 
-        row["Product_Name"] || 
-        row["Page_Number"] || 
+        row["Stage_Title"] || // For roadmap
+        row["Video_Title_Concept"] || // For YouTube
+        row["Concept"] || // Generic
+        row["Panel_Number"] || // For comics
+        row["Product_Name"] || // For products
+        row["Page_Number"] || // For stories
         (firstColumnKey ? row[firstColumnKey] : '') || 
         `image_${i + 1}`;
       if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {
@@ -345,7 +366,7 @@ export default function ImageForgeApp() {
         <p className="text-muted-foreground mt-2">
           Generate multiple images from CSV or TSV data using AI, with consistent elements and optional reference images.
           <br />
-          Select a prompt template below or craft your own for tasks like YouTube Thumbnails, Comic Panels, and more!
+          Select a prompt template below to get started, or craft your own for diverse tasks!
         </p>
       </header>
 

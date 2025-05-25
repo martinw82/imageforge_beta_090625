@@ -23,17 +23,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
+import type { PromptTemplate } from "./ImageForgeApp"; // Import the PromptTemplate type
 
 export const promptFormSchema = z.object({
   startPrompt: z.string().min(1, "Start prompt (including consistency rules) is required."),
-  csvText: z.string().optional(), // Renamed to generic 'dataText' or keep as csvText if it can also hold TSV content? For now, csvText implies it can hold pasted TSV too.
-  csvFile: z // This field will now handle both CSV and TSV
+  csvText: z.string().optional(),
+  csvFile: z
     .instanceof(typeof File !== 'undefined' ? File : Object)
     .optional()
     .nullable()
     .refine(
       (file) => {
-        if (!file) return true; // Allow null or undefined
+        if (!file) return true;
         const fileName = typeof file.name === 'string' ? file.name.toLowerCase() : '';
         return (
           file.type === "text/csv" ||
@@ -63,13 +64,14 @@ export const promptFormSchema = z.object({
       `Reference file must be an image.`
     ),
   delaySeconds: z.number().min(0).optional().default(0),
+  // selectedTemplateId is not needed in the schema, selection directly updates other fields
 }).superRefine((data, ctx) => {
   if (!data.csvFile && (!data.csvText || data.csvText.trim() === "")) {
     const errorMessage = "Either paste data into the text area or upload a CSV/TSV file.";
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: errorMessage,
-      path: ["csvText"], 
+      path: ["csvText"],
     });
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -85,12 +87,48 @@ interface PromptFormProps {
   form: UseFormReturn<PromptFormValuesSchema>;
   onSubmit: SubmitHandler<PromptFormValuesSchema>;
   isLoading: boolean;
+  promptTemplates: PromptTemplate[]; // Add promptTemplates prop
 }
 
-export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
+export function PromptForm({ form, onSubmit, isLoading, promptTemplates }: PromptFormProps) {
+  
+  const handleTemplateChange = (templateId: string) => {
+    const selectedTemplate = promptTemplates.find(t => t.id === templateId);
+    if (selectedTemplate) {
+      form.setValue("startPrompt", selectedTemplate.startPrompt, { shouldValidate: true });
+      form.setValue("csvText", selectedTemplate.csvText, { shouldValidate: true });
+      form.setValue("endPrompt", selectedTemplate.endPrompt, { shouldValidate: true });
+      // Optionally clear csvFile if a template populates csvText, or manage as preferred.
+      // For now, let's not clear csvFile, user can manually remove it if they prefer template text.
+      // form.setValue("csvFile", null); 
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={onSubmit} className="space-y-6">
+        <FormItem>
+          <FormLabel>Prompt Template (Optional)</FormLabel>
+          <Select onValueChange={handleTemplateChange}>
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a prompt template" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {promptTemplates.map((template) => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormDescription>
+            Choose a template to pre-fill prompts and example data for common use cases.
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+
         <FormField
           control={form.control}
           name="startPrompt"
@@ -99,7 +137,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
               <FormLabel>Start Prompt (Consistency Rules)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Define fixed consistency rules (Art Style, Bob's Design, Colors, Resolution, Negative Prompts) that precede each row's data."
+                  placeholder="Define fixed consistency rules (Art Style, Character/Logo, Colors, Resolution, Negative Prompts) that precede each row's data."
                   className="resize-y min-h-[150px] font-mono text-sm"
                   {...field}
                 />
@@ -118,7 +156,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
               <FormLabel>Data Input (CSV or TSV format) - Text Area</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Concept,Scene,Bob's Action,Props/Elements,Mood/Tone&#10;Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist...,Scorecard with labels,Bob looks thoughtful...&#10;&#10;Or paste TSV data (tab-separated) here."
+                  placeholder="Column_Header_1,Column_Header_2&#10;Row1_Value1,Row1_Value2&#10;Row2_Value1,Row2_Value2&#10;&#10;Or paste TSV data (tab-separated) here."
                   className="resize-y min-h-[150px] font-mono text-sm"
                   {...field}
                 />
@@ -134,7 +172,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
         <FormField
           control={form.control}
           name="csvFile"
-          render={({ field: { onChange, value, ...rest } }) => ( 
+          render={({ field: { onChange, value, ...rest } }) => (
             <FormItem>
               <FormLabel>Upload Data File (CSV or TSV)</FormLabel>
               <FormControl>
@@ -169,7 +207,7 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
               <FormLabel>End Prompt (Reinforce Consistency)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g., The image must be highly consistent with previous outputs in Bob’s design, art style..."
+                  placeholder="e.g., The image must be highly consistent with previous outputs in style and character design..."
                   className="resize-y min-h-[80px]"
                   {...field}
                 />
@@ -251,11 +289,11 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
                   type="password"
                   placeholder="Enter your Google AI API Key"
                   {...field}
-                  autoComplete="new-password" 
+                  autoComplete="new-password"
                 />
               </FormControl>
               <FormDescription>
-                If provided, this key will be used. Otherwise, server's pre-configured key (if any) is used. For production, set keys as server environment variables.
+                If provided, this key will be used. Otherwise, server's pre-configured key (if any) is used.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -276,3 +314,5 @@ export function PromptForm({ form, onSubmit, isLoading }: PromptFormProps) {
     </Form>
   );
 }
+
+    

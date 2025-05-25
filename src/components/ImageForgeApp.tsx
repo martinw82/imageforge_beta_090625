@@ -25,21 +25,22 @@ interface GeneratedImage {
 }
 
 const defaultValues: PromptFormValuesSchema = {
-  startPrompt: `**Consistency Requirements** (Fixed Across All Images):
-- **Art Style**: Clean, semi-futuristic illustration with crisp lines, vibrant colors, and a professional tone.
-- **Consistent Element (Bob)**: Include Bob, a sleek humanoid robot with a red-armored body, glowing blue LED eyes, and a single robotic arm with precise movements, identical in every image. Bob is prominently centered unless otherwise specified.
-- **Color Palette**: Use only #0055FF (Blue), #FF0000 (Red), #FFFFFF (White), #1C2526 (Dark Gray).
-- **Resolution**: 1920x1080, 16:9.
-- **Negative Prompt**: Avoid blurry, cartoonish, overly complex, cluttered, low contrast.
-- **Using a Reference Image**: If you provide a reference image, your 'Scene Details' below (from the CSV/TSV) should describe how that image (e.g., a character or logo) should be integrated or modified. For example: "Place the character from the reference image into a bustling marketplace scene," or "Render the object described below in the style of the provided reference logo."
+  startPrompt: `**Consistency Requirements** (Fixed Across All Images - Your Channel Brand):
+- **Art Style**: Bright, engaging, and professional, designed to maximize click-through rates. Use vibrant, saturated colors.
+- **Consistent Element (Optional Channel Logo/Mascot)**: If you use a reference image (e.g., your channel logo or mascot), your 'Thumbnail Details' below should describe how it should be consistently placed (e.g., "Place the channel logo from the reference image subtly in the bottom-left corner of every thumbnail."). If no reference image, this rule is ignored.
+- **Overall Feel**: Energetic and attention-grabbing.
+- **Color Palette Guidance**: Suggest primary and secondary colors from your channel's branding to guide the AI, e.g., "Main colors: #FFD700 (Gold), #4A90E2 (Bright Blue)." The AI will use these as strong suggestions.
+- **Resolution**: 1280x720 (standard YouTube thumbnail).
+- **Negative Prompt**: Avoid blurry, low-contrast, cluttered, uninteresting, amateurish designs. Do not generate actual legible text, but leave clear space or a stylized background for text to be added later.
+- **Using a Reference Image**: If you provide a reference image for a logo/mascot, ensure your 'Thumbnail Details' (from the CSV/TSV) specify its placement or integration. For other types of reference images (e.g., a product shot), describe how the AI should incorporate or draw inspiration from it.
 
-**Scene Details** (Based on the following data from each CSV/TSV row):`,
-  csvText: `Concept,Scene,Bob's Action,Props/Elements,Mood/Tone
-Readiness Checkpoint,Governance & Community Scoreboard,Bob ticking a checklist with his robotic arm,Scorecard with Product Community Security Economics Operations,Bob looks thoughtful visualizes readiness quiz
-Decentralized Governance,DAO Hub with floating charts,Bob presenting holographic DAO,Community avatars data streams,Optimistic collaborative
-Blockchain Security,Fortified Data Core Facility,Bob shielding data core with arm,Network nodes glowing firewalls,Secure vigilant`,
+**Thumbnail Details** (Based on the following data from each CSV/TSV row - this is where your CSV data for each video will go):`,
+  csvText: `Video_Title_Concept,Main_Visual_Element,Dominant_Color_Suggestion,Text_Placeholder_Idea
+"My Epic Travel Adventure","Backpacker silhouette against a stunning mountain vista","Deep blues and oranges","EPISODE 1: MOUNTAIN PEAK"
+"Ultimate Gaming Setup 2024","Close-up of a glowing RGB keyboard and high-tech mouse","Cyberpunk purples and teals","MY NEW SETUP!"
+"Cooking the Perfect Pizza","Delicious-looking pizza with melting cheese, action shot of slicing","Warm reds and yellows","WORLD'S BEST PIZZA?"`,
   csvFile: null,
-  endPrompt: "The image must be highly consistent with the **Consistency Requirements** in Bob’s design, art style, logo placement (if specified in scene details), and color palette, while accurately reflecting the unique scene details.",
+  endPrompt: "The image must be highly consistent with the **Consistency Requirements** in terms of art style and overall feel, suitable for a YouTube thumbnail, while accurately reflecting the unique **Thumbnail Details** for each video. Remember to leave clear visual space for text overlays.",
   apiKey: "",
   referenceImage: null,
   delaySeconds: 0,
@@ -128,7 +129,7 @@ export default function ImageForgeApp() {
       if (fileName.endsWith(".tsv") || uploadedFile.type === "text/tab-separated-values") {
         fileTypeHint = "TSV";
       }
-      setProgressMessage(`Reading ${fileTypeHint} file...`);
+      setProgressMessage(\`Reading \${fileTypeHint} file...\`);
       try {
         dataTextToParse = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -137,11 +138,11 @@ export default function ImageForgeApp() {
           reader.readAsText(uploadedFile);
         });
       } catch (error) {
-        console.error(`Error reading ${fileTypeHint} file:`, error);
+        console.error(\`Error reading \${fileTypeHint} file:\`, error);
         toast({
           variant: "destructive",
-          title: `Error Reading ${fileTypeHint} File`,
-          description: `Could not process the uploaded ${fileTypeHint} file. Please check the file and try again.`,
+          title: \`Error Reading \${fileTypeHint} File\`,
+          description: \`Could not process the uploaded \${fileTypeHint} file. Please check the file and try again.\`,
         });
         setIsLoading(false);
         return;
@@ -160,14 +161,14 @@ export default function ImageForgeApp() {
       setIsLoading(false);
       return;
     }
-    setProgressMessage(`Parsing ${fileTypeHint} data...`);
+    setProgressMessage(\`Parsing \${fileTypeHint} data...\`);
     const delimiter = fileTypeHint === "TSV" ? "\t" : ",";
     const parseResult = parseDelimitedText(dataTextToParse, delimiter);
 
     if ("error" in parseResult) {
       toast({
         variant: "destructive",
-        title: `${fileTypeHint} Parsing Error`,
+        title: \`\${fileTypeHint} Parsing Error\`,
         description: parseResult.error,
       });
       setIsLoading(false);
@@ -179,7 +180,7 @@ export default function ImageForgeApp() {
       toast({
         variant: "destructive",
         title: "No Data",
-        description: `${fileTypeHint} data resulted in no rows to process.`,
+        description: \`\${fileTypeHint} data resulted in no rows to process.\`,
       });
       setIsLoading(false);
       return;
@@ -190,17 +191,19 @@ export default function ImageForgeApp() {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setProgressMessage(`Generating image ${i + 1} of ${rows.length}...`);
+      setProgressMessage(\`Generating image \${i + 1} of \${rows.length}...\`);
       const formattedRowData = formatRowData(row);
 
-      let fullPrompt = `${data.startPrompt}\n${formattedRowData}\n${data.endPrompt}`;
+      let fullPrompt = \`\${data.startPrompt}\n\${formattedRowData}\n\${data.endPrompt}\`;
       fullPrompt = fullPrompt.trim();
 
       const firstColumnKey = Object.keys(row)[0];
-      let fileNameBase = row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || `image_${i + 1}`;
+      // Try to use "Video_Title_Concept" or "Concept" for filename, then fallback to first column or generic.
+      let fileNameBase = row["Video_Title_Concept"] || row["Concept"] || (firstColumnKey ? row[firstColumnKey] : '') || \`image_\${i + 1}\`;
       if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {
-          fileNameBase = `image_${i + 1}`;
+          fileNameBase = \`image_\${i + 1}\`;
       }
+
 
       try {
         const aiInput: SelectAiModelInput = {
@@ -223,13 +226,13 @@ export default function ImageForgeApp() {
         console.error("Error generating image for row:", row, error);
         toast({
           variant: "destructive",
-          title: `Error generating image for row ${i + 1}`,
+          title: \`Error generating image for row \${i + 1}\`,
           description: error instanceof Error ? error.message : "An unknown error occurred",
         });
       }
 
       if (delayBetweenGenerations > 0 && i < rows.length - 1) {
-        setProgressMessage(`Waiting for ${delayBetweenGenerations} seconds before generating image ${i + 2}...`);
+        setProgressMessage(\`Waiting for \${delayBetweenGenerations} seconds before generating image \${i + 2}...\`);
         await new Promise(resolve => setTimeout(resolve, delayBetweenGenerations * 1000));
       }
     }
@@ -238,7 +241,7 @@ export default function ImageForgeApp() {
     if (newImages.length > 0) {
        toast({
         title: "Success!",
-        description: `Successfully generated ${newImages.length} images.`,
+        description: \`Successfully generated \${newImages.length} images.\`,
         variant: "default",
         className: "bg-accent text-accent-foreground rounded-md shadow-lg"
       });
@@ -261,6 +264,8 @@ export default function ImageForgeApp() {
         </div>
         <p className="text-muted-foreground mt-2">
           Generate multiple images from CSV or TSV data using AI, with consistent elements and optional reference images.
+          <br />
+          Now pre-configured with defaults for YouTube Thumbnails! Adjust prompts for other uses like comic panels or product shots.
         </p>
       </header>
 

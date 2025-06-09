@@ -1,157 +1,143 @@
-ca# AI Flow and Genkit Integration
 
-This project utilizes Google's Genkit framework to orchestrate AI model interactions within a Next.js application. The core of this integration lies in a Genkit flow designed to select the appropriate AI model based on the input prompt and then generate a response using the chosen model.
+# AI Flow and Genkit Integration in ImageForge
 
-## Genkit Flow: `select-ai-model-flow`
+This project utilizes Google's Genkit framework to orchestrate AI model interactions within the Next.js application. The core of this integration lies in a Genkit flow specifically designed for image generation based on user inputs.
 
-The `select-ai-model-flow` is the central piece of the AI logic. It is defined in `src/ai/flows/select-ai-model-flow.ts`. This flow takes a user prompt as input and performs the following steps:
+## Genkit Flow: `selectAiModelFlow`
 
-1. **Input Handling:** The flow receives a `prompt` string as its input.
+The `selectAiModelFlow` is the central piece of the AI logic for image generation. It is defined in `src/ai/flows/select-ai-model-flow.ts`.
 
-2. **Model Selection:** Based on the characteristics or content of the input `prompt`, the flow determines which AI model is best suited to handle the request. This selection logic can be simple (e.g., based on keywords) or more complex (e.g., using a separate classification model). In this specific setup, the flow uses a simple condition to choose between two hypothetical models: `gemini-1.5-flash-tuned` and `gemini-1.5-pro-tuned`.
+**Purpose:**
+This flow takes comprehensive user inputs, including a detailed text prompt, an optional user-provided Google AI API key, and an optional reference image. It then uses these inputs to generate an image using the `googleai/gemini-2.0-flash-exp` model.
 
-3. **Model Interaction:** Once a model is selected, the flow interacts with the chosen model using Genkit's model functions. It passes the user prompt to the selected model and receives the generated response.
+**Inputs (`SelectAiModelInputSchema`):**
+*   `prompt`: A string containing the full text prompt for image generation, combining the user's start prompt, structured data from a CSV/TSV row, and the end prompt.
+*   `apiKey` (optional): A string for the user's Google AI API key. If provided, a new Genkit client is dynamically initialized with this key for the generation request. Otherwise, the server's pre-configured Genkit client is used.
+*   `referenceImageDataUri` (optional): A string representing a base64 encoded data URI of a reference image. If provided, this image is used as context by the AI model.
 
-4. **Output:** The flow returns the generated response from the chosen AI model.
+**Outputs (`SelectAiModelOutputSchema`):**
+*   `imageUrl`: A data URI string of the generated image (e.g., `data:image/png;base64,...`).
+*   `altText`: The text prompt that was used to generate the image, suitable for image alt attributes.
 
-Here's a simplified representation of the flow's logic:
-```
-typescript
-// src/ai/flows/select-ai-model-flow.ts
-import { defineFlow, run } from '@genkit-ai/flow';
-import { gemini15Flash, gemini15Pro } from '@genkit-ai/vertexai';
+**Core Logic:**
+1.  **Client Selection:** The flow checks if a user `apiKey` is provided.
+    *   If an `apiKey` is present, it attempts to initialize a new, temporary `genkit` instance configured with that key. This allows users to leverage their own API keys and associated quotas.
+    *   If no `apiKey` is provided, it defaults to using the globally configured `ai` instance from `src/ai/genkit.ts`.
+2.  **Prompt Construction for Image Model:**
+    *   If a `referenceImageDataUri` is provided, the prompt for the AI model is structured as an array containing the reference image media object and the text prompt. This guides the AI to use the reference image contextually.
+    *   If no reference image is provided, the prompt is simply the text `input.prompt`.
+3.  **Image Generation:** The flow calls `clientToUse.generate()` with:
+    *   `model: 'googleai/gemini-2.0-flash-exp'` (explicitly specifying the image generation model).
+    *   The constructed `prompt` (either text or text + reference image).
+    *   `config: { responseModalities: ['TEXT', 'IMAGE'] }` (required for this model to output images).
+4.  **Error Handling:** The flow includes error handling for API key issues, quota problems, safety filter blocks, and other common generation errors, providing user-friendly messages.
+5.  **Output:** Returns an object containing the `imageUrl` (data URI) and `altText`.
 
-export const selectAiModelFlow = defineFlow(
+A simplified representation of the relevant part of the flow:
+```typescript
+// src/ai/flows/select-ai-model-flow.ts (conceptual snippet)
+import { ai as globalAi } from '@/ai/genkit';
+import { z } from 'genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
+
+// ... Schema definitions (SelectAiModelInputSchema, SelectAiModelOutputSchema) ...
+
+export async function selectAiModel(input: SelectAiModelInput): Promise<SelectAiModelOutput> {
+  return selectAiModelFlow(input);
+}
+
+const selectAiModelFlow = globalAi.defineFlow(
   {
     name: 'selectAiModelFlow',
-    inputSchema: z.string(), // Expects a string prompt as input
-    outputSchema: z.string(), // Returns a string response
+    inputSchema: SelectAiModelInputSchema,
+    outputSchema: SelectAiModelOutputSchema,
   },
-  async (prompt) => {
-    let selectedModel;
-    // Simple example of model selection based on prompt content
-    if (prompt.includes('detailed analysis')) {
-      selectedModel = gemini15Pro;
-    } else {
-      selectedModel = gemini15Flash;
+  async (input) => {
+    let clientToUse = globalAi;
+    if (input.apiKey) {
+      // Dynamically create a client with the user's key
+      clientToUse = genkit({ plugins: [googleAI({ apiKey: input.apiKey })] });
     }
 
-    // Interact with the selected model
-    const response = await run(selectedModel, prompt);
+    let generationPrompt: string | Array<object> = input.prompt;
+    if (input.referenceImageDataUri) {
+      generationPrompt = [
+        { media: { url: input.referenceImageDataUri } },
+        { text: input.prompt }
+      ];
+    }
 
-    return response.text(); // Return the model's text response
+    const { media } = await clientToUse.generate({
+      model: 'googleai/gemini-2.0-flash-exp', // Specific image model
+      prompt: generationPrompt,
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+
+    if (!media?.url) {
+      throw new Error("AI did not return an image.");
+    }
+    return { imageUrl: media.url, altText: input.prompt };
   }
 );
 ```
-**Note:** The actual model selection logic in your implementation might be more sophisticated.
 
-## Genkit Setup
+## Genkit Setup (`src/ai/genkit.ts`)
 
-The Genkit environment is initialized and configured in `src/ai/genkit.ts`. This file is responsible for:
+The Genkit environment for the application is initialized in `src/ai/genkit.ts`. This file is responsible for:
+1.  **Importing Dependencies:** Importing `genkit` and the `googleAI` plugin.
+2.  **Initializing Global AI Client:** Creating a global `ai` object using `genkit()`.
+    *   It's configured with the `googleAI()` plugin. This allows Genkit to interact with Google AI models.
+    *   A default text model (`googleai/gemini-2.0-flash`) is specified here, which could be used by other flows if added. However, the `selectAiModelFlow` overrides this by specifying `googleai/gemini-2.0-flash-exp` for its image generation task.
 
-1. **Importing Dependencies:** Importing necessary Genkit modules and AI model providers (e.g., Vertex AI).
-2. **Configuring Genkit:** Setting up Genkit with the required plugins and configurations.
-3. **Registering Flows:** Registering the defined flows (like `selectAiModelFlow`) with Genkit so they can be invoked.
-```
-typescript
+```typescript
 // src/ai/genkit.ts
-import { init } from '@genkit-ai/core';
-import { vertexAI } from '@genkit-ai/vertexai';
-import { selectAiModelFlow } from './flows/select-ai-model-flow';
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 
-export default async () => {
-  await init({
-    plugins: [
-      vertexAI({ location: 'us-central1' }), // Configure Vertex AI
-      // Add other necessary plugins
-    ],
-    logLevel: 'debug', // Set desired log level
-    // Other Genkit configurations
-  });
-
-  // Register your flows
-  selectAiModelFlow.register();
-};
+export const ai = genkit({
+  plugins: [googleAI()], // Configures Google AI models
+  model: 'googleai/gemini-2.0-flash', // Default model for other potential flows
+});
 ```
-## Integration into the Next.js Application
+This global `ai` object is then imported by flows (like `selectAiModelFlow`) to use `ai.defineFlow(...)`, `ai.definePrompt(...)`, etc.
 
-The Next.js application interacts with the Genkit flow through API endpoints. When a user submits a prompt, the frontend sends a request to a backend API route. This route then calls the `selectAiModelFlow` using Genkit's flow invocation mechanism.
+## Integration into the Next.js Application (Server Actions)
 
-The response from the Genkit flow (the generated text from the AI model) is then sent back to the frontend to be displayed to the user.
+ImageForge leverages Next.js **Server Actions** for interacting with the Genkit flow. This means the frontend calls the AI flow as if it were a regular asynchronous TypeScript function, and Next.js handles the communication with the server-side Genkit environment.
 
-**Example (Simplified):**
+**No custom API endpoints (e.g., `/api/generate`) are used for this flow.**
 
-An API route (e.g., `/api/generate`) would handle the incoming prompt:
-```
-typescript
-// pages/api/generate.ts (example API route)
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { selectAiModelFlow } from '../../src/ai/flows/select-ai-model-flow'; // Assuming the flow is correctly imported
+**Workflow:**
+1.  The `ImageForgeApp.tsx` component (client-side) imports the `selectAiModel` wrapper function from `src/ai/flows/select-ai-model-flow.ts`.
+    ```typescript
+    // src/components/ImageForgeApp.tsx (simplified import)
+    import { selectAiModel, type SelectAiModelInput } from "@/ai/flows/select-ai-model-flow";
+    ```
+2.  When the user submits the form to generate images, the `onSubmit` handler in `ImageForgeApp.tsx` directly `await`s the `selectAiModel` function with the prepared inputs.
+    ```typescript
+    // src/components/ImageForgeApp.tsx (simplified usage)
+    const onSubmit: SubmitHandler<PromptFormValuesSchema> = async (data) => {
+      // ... prepare aiInput from form data ...
+      const aiInput: SelectAiModelInput = { /* ... */ };
+      try {
+        const result = await selectAiModel(aiInput); // Direct call to the server action
+        // ... process result.imageUrl ...
+      } catch (error) {
+        // ... handle error ...
+      }
+    };
+    ```
+The `'use server';` directive at the top of `select-ai-model-flow.ts` enables this direct server-side function invocation from client components.
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method === 'POST') {
-    const { prompt } = req.body;
+## Key Takeaways for This Integration
 
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
+*   **Server Actions:** The primary method of invoking Genkit flows is through Next.js Server Actions, simplifying client-server communication.
+*   **Specific Image Model:** The `selectAiModelFlow` is hardcoded to use `googleai/gemini-2.0-flash-exp` for image generation, including necessary configurations like `responseModalities`.
+*   **Dynamic API Key Usage:** The flow supports using user-provided API keys by dynamically re-initializing a Genkit client for specific requests.
+*   **Centralized AI Client:** `src/ai/genkit.ts` provides a global `ai` object for defining flows and prompts.
+*   **No Explicit Flow Registration in `genkit.ts`:** Unlike some Genkit examples that might show explicit `.register()` calls in the main Genkit setup file for a separate Genkit server process, in this Next.js integration, flows are made available as server actions. The `src/ai/dev.ts` file is used to run Genkit locally for development and testing of flows if needed, independent of the Next.js app.
 
-    try {
-      // Invoke the Genkit flow
-      const response = await selectAiModelFlow.invoke(prompt);
-      res.status(200).json({ response });
-    } catch (error) {
-      console.error('Error invoking Genkit flow:', error);
-      res.status(500).json({ error: 'Error generating response' });
-    }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
-}
-```
-On the frontend, the application would send the prompt to this API route and handle the response:
-```
-typescript
-// src/components/PromptForm.tsx (example frontend interaction)
-// ...
-const handleSubmit = async (event: React.FormEvent) => {
-  event.preventDefault();
-  // ...
-  try {
-    const response = await fetch('/api/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    // Process the received AI response data.response
-    // ...
-  } catch (error) {
-    console.error('Error sending prompt:', error);
-    // Handle errors
-  }
-};
-// ...
-```
-## Key Takeaways for Integration
-
-To integrate a similar AI flow using Genkit in your own project:
-
-1.  **Define Your Flow:** Create a Genkit flow using `defineFlow` that encapsulates your AI logic, including input processing, model selection, and model interaction.
-2.  **Configure Genkit:** Set up Genkit with the necessary plugins for your chosen AI models (e.g., `@genkit-ai/vertexai`, `@genkit-ai/openai`).
-3.  **Register Your Flow:** Ensure your defined flow is registered with Genkit during its initialization.
-4.  **Create API Endpoints:** Build backend API routes in your application to receive user input and invoke your Genkit flow using `flow.invoke()`.
-5.  **Connect Frontend:** Integrate the frontend of your application to send user input to your API endpoints and display the responses received from the AI models via the Genkit flow.
-
-By following these steps and utilizing the Genkit framework, you can build robust and flexible AI-powered features with clear separation of concerns. The `select-ai-model-flow` pattern allows for easy expansion to support multiple AI models and dynamic model selection based on various criteria.
+This setup provides a streamlined way to integrate Genkit's AI capabilities directly within the Next.js application structure.

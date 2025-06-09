@@ -37,14 +37,12 @@ const promptTemplates: PromptTemplate[] = [
     name: "YouTube Thumbnails",
     startPrompt: `**Consistency Requirements** (Fixed Across All Images - Your Channel Brand):
 - **Art Style**: Bright, engaging, and professional, designed to maximize click-through rates. Use vibrant, saturated colors.
-- **Consistent Element (Optional Channel Logo/Mascot)**: If you use a reference image (e.g., your channel logo or mascot), your 'Thumbnail Details' below should describe how it should be consistently placed (e.g., "Place the channel logo from the reference image subtly in the bottom-left corner of every thumbnail."). If no reference image, this rule is ignored.
+- **Consistent Element (Optional Channel Logo/Mascot)**: If you use a reference image (e.g., your channel logo or mascot), your 'Thumbnail Details' below should describe how it should be consistently placed (e.g., "Place the channel logo from the reference image subtly in the bottom-left corner of every thumbnail."). If no reference image, this rule is ignored. When describing how to use the reference image, be specific. For example, if it's a character, state "Use the character from the reference image and place them..."
 - **Overall Feel**: Energetic and attention-grabbing.
 - **Color Palette Guidance**: Suggest primary and secondary colors from your channel's branding to guide the AI, e.g., "Main colors: #FFD700 (Gold), #4A90E2 (Bright Blue)." The AI will use these as strong suggestions.
 - **Resolution**: 1280x720 (standard YouTube thumbnail).
 - **Negative Prompt**: Avoid blurry, low-contrast, cluttered, uninteresting, amateurish designs. Do not generate actual legible text, but leave clear space or a stylized background for text to be added later.
-- **Using a Reference Image**: If you provide a reference image for a logo/mascot, ensure your 'Thumbnail Details' (from the CSV/TSV) specify its placement or integration. For other types of reference images (e.g., a product shot), describe how the AI should incorporate or draw inspiration from it.
-
-**Thumbnail Details** (Based on the following data from each CSV/TSV row - this is where your CSV data for each video will go):`,
+- **Using a Reference Image**: If you provide a reference image for a logo/mascot, ensure your 'Thumbnail Details' (from the CSV/TSV) specify its placement or integration. For other types of reference images (e.g., a product shot), describe how the AI should incorporate or draw inspiration from it.`,
     csvText: `Video_Title_Concept,Main_Visual_Element,Dominant_Color_Suggestion,Text_Placeholder_Idea
 "My Epic Travel Adventure","Backpacker silhouette against a stunning mountain vista","Deep blues and oranges","EPISODE 1: MOUNTAIN PEAK"
 "Ultimate Gaming Setup 2024","Close-up of a glowing RGB keyboard and high-tech mouse","Cyberpunk purples and teals","MY NEW SETUP!"
@@ -56,13 +54,11 @@ const promptTemplates: PromptTemplate[] = [
     name: "Comic Book Panels",
     startPrompt: `**Consistency Requirements** (Fixed Across All Panels):
 - **Art Style**: Dynamic and expressive comic book art style with bold lines and vibrant, cel-shaded colors.
-- **Consistent Character (Optional)**: If a character (e.g., 'Hero X') is central, define their appearance here (e.g., "Hero X: Muscular build, blue suit, red cape, determined expression"). Ensure character design is identical in every panel if a reference image for the character is not used. If a reference image is used for the character, ensure its features are preserved.
+- **Consistent Character (Optional)**: If a character (e.g., 'Hero X') is central, define their appearance here (e.g., "Hero X: Muscular build, blue suit, red cape, determined expression"). Ensure character design is identical in every panel if a reference image for the character is not used. If a reference image is used for the character, ensure its features are preserved by describing how to use it (e.g., "Use the character from the reference image, preserving their key features...").
 - **Panel Layout**: Each image represents one panel. Consider a consistent border style (e.g., "Thin black border around each panel").
 - **Speech/Thought Bubble Placeholder**: AI should leave clear, empty space for speech or thought bubbles to be added later. Do not generate text in bubbles.
 - **Resolution**: 800x1200 (portrait for typical comic panel).
-- **Negative Prompt**: Avoid overly realistic rendering, muted colors, inconsistent character features, cluttered backgrounds unless specified.
-
-**Panel Details** (Based on the following data from each CSV/TSV row):`,
+- **Negative Prompt**: Avoid overly realistic rendering, muted colors, inconsistent character features, cluttered backgrounds unless specified.`,
     csvText: `Panel_Number,Scene_Setting,Character_Action_Pose,Key_Objects,Dialogue_Focus_Area_Hint
 1,"City street at night, raining","Hero X perched on a gargoyle, looking down","Rain streaks, distant city lights","Top-left for dialogue"
 2,"Close-up on Villain Y's face","Villain Y sneering, glowing red eyes","Shadows, hint of a high-tech monocle","Bottom-right for internal thought"
@@ -76,11 +72,9 @@ const promptTemplates: PromptTemplate[] = [
 - **Art Style**: Clean, modern, and professional product photography style. Focus on high-quality lighting and sharp details.
 - **Background**: Neutral and uncluttered background (e.g., "Plain light gray studio background," or "Subtle lifestyle setting if specified").
 - **Lighting**: Bright and even lighting, highlighting product features. Avoid harsh shadows unless for dramatic effect.
-- **Brand Colors (Subtle)**: If applicable, subtly incorporate brand colors (e.g., "Primary: #0055FF, Accent: #FFA500") in props or accent lighting, without overpowering the product.
+- **Brand Colors (Subtle)**: If applicable, subtly incorporate brand colors (e.g., "Primary: #0055FF, Accent: #FFA500") in props or accent lighting, without overpowering the product. If a reference image of the product is provided, mention it like "The product in the reference image should be the centerpiece."
 - **Resolution**: 1080x1080 (square for e-commerce) or 1920x1080 for banners.
-- **Negative Prompt**: Avoid distracting backgrounds, poor lighting, blurry product, unrealistic textures, human hands unless specified.
-
-**Product Shot Details** (Based on the following data from each CSV/TSV row):`,
+- **Negative Prompt**: Avoid distracting backgrounds, poor lighting, blurry product, unrealistic textures, human hands unless specified.`,
     csvText: `Product_Name,Feature_To_Highlight,Angle_View,Props_Lifestyle_Hint,Color_Variant_If_Any
 "Wireless Headphones X100","Close-up on the ear-cup cushion texture","Slightly angled side view","None, pure studio shot","Black"
 "Smart Water Bottle Pro","Lid with temperature display glowing","Front view, slightly elevated","Minimalist desk setup (blurred background)","Blue"
@@ -92,13 +86,11 @@ const promptTemplates: PromptTemplate[] = [
     name: "Children's Story Illustrations",
     startPrompt: `**Consistency Requirements** (Fixed Across All Illustrations):
 - **Art Style**: Whimsical and charming watercolor illustration style, with soft edges and a warm, inviting color palette.
-- **Consistent Character**: Main character, "Pip the Squirrel," a small, fluffy squirrel with a bushy tail, bright curious eyes, and often wearing a tiny blue scarf. Pip's design must be identical in every illustration if a reference image for Pip is not used. If a reference image of Pip is used, ensure its features are preserved.
+- **Consistent Character**: Main character, "Pip the Squirrel," a small, fluffy squirrel with a bushy tail, bright curious eyes, and often wearing a tiny blue scarf. Pip's design must be identical in every illustration if a reference image for Pip is not used. If a reference image of Pip is used, ensure its features are preserved by stating "Use Pip the Squirrel from the reference image, keeping his appearance consistent..."
 - **Overall Mood**: Gentle, friendly, and magical.
 - **Color Palette Guidance**: Primary colors: Soft yellows (e.g., HSL(60, 100%, 80%)), gentle blues (e.g., HSL(200, 70%, 75%)), earthy browns and greens.
 - **Resolution**: 1200x800 (landscape for book spread).
-- **Negative Prompt**: Avoid scary or dark imagery, overly complex details, harsh lines, inconsistent character appearance for Pip.
-
-**Illustration Details** (Based on the following data from each CSV/TSV row):`,
+- **Negative Prompt**: Avoid scary or dark imagery, overly complex details, harsh lines, inconsistent character appearance for Pip.`,
     csvText: `Page_Number,Scene_Description,Pip_Action_Expression,Other_Characters_Elements,Dominant_Colors_Mood
 1,"Pip's cozy tree hollow, morning light streaming in","Pip waking up, stretching with a happy yawn","Sunbeam, a half-eaten acorn","Warm yellows, soft browns, peaceful"
 2,"A sunny forest path","Pip curiously sniffing a bright red mushroom","Tall green trees, butterflies, a friendly ladybug","Vibrant greens, blues, cheerful red accent"
@@ -110,20 +102,69 @@ const promptTemplates: PromptTemplate[] = [
     name: "Project Roadmap Visuals (Crypto/Blockchain)",
     startPrompt: `**Consistency Requirements** (Fixed Across All Roadmap Images):
 - **Art Style**: Sleek, futuristic, and slightly abstract visual style with a professional and innovative tone, suitable for a tech or blockchain project roadmap. Images should feel interconnected or part of a larger journey or progression. Use clean lines and modern aesthetics.
-- **Consistent Element (Optional Project Logo/Icon)**: If a reference image is provided (e.g., project logo, recurring thematic icon), your 'Stage Details' should describe its subtle and consistent placement or integration in each roadmap visual.
+- **Consistent Element (Optional Project Logo/Icon)**: If a reference image is provided (e.g., project logo, recurring thematic icon), your 'Stage Details' should describe its subtle and consistent placement or integration in each roadmap visual. For instance, "Subtly integrate the logo from the reference image into the top-left corner of each visual."
 - **Color Palette**: Adhere to a core color palette to maintain brand consistency (e.g., Primary: #0A2540 (Deep Tech Blue), Accent: #4FD1C5 (Cyber Teal), Highlight: #FFFFFF (Bright White)). The AI will use these as strong suggestions, adaptable to the mood of each stage.
 - **Resolution**: 1600x900 (16:9 aspect ratio, suitable for presentations).
 - **Text Placeholders**: Do not generate detailed, legible text for milestones or labels. Instead, create visually distinct areas or stylized graphical elements where text can be overlaid later (e.g., clean rectangular boxes, abstract data readouts, glowing placeholder text shapes).
 - **Overall Feel**: Each image should convey progress, innovation, and clarity for the specific roadmap stage.
-- **Negative Prompt**: Avoid overly complex or cluttered scenes, cartoonish styles, inconsistent branding elements, blurry or low-resolution outputs, and generic stock photo aesthetics.
-
-**Stage Details** (Based on the following data from each CSV/TSV row - this defines each unique roadmap visual):`,
+- **Negative Prompt**: Avoid overly complex or cluttered scenes, cartoonish styles, inconsistent branding elements, blurry or low-resolution outputs, and generic stock photo aesthetics.`,
     csvText: `Stage_Title,Visual_Metaphor_Concept,Key_Elements_to_Represent,Primary_Color_Focus_or_Mood
 "Phase 1: Genesis & Foundation","A single, intricate digital seed or core sprouting foundational lines of code or geometric structures. Sense of origin and stability.","Glowing core, abstract code patterns, foundational blocks, subtle network lines beginning to form.","Deep Tech Blue, with Cyber Teal highlights indicating initial energy."
 "Q2: Protocol Alpha Launch","A stylized, minimalist rocket or energy beam ascending from a platform, indicating launch and upward momentum.","Ascending rocket/beam, launchpad structure, initial data streams, subtle representation of a growing network.","Cyber Teal and Bright White, conveying motion and clarity. Accents of a vibrant secondary color (e.g., #F2C94C - Tech Gold)."
 "Q3: Smart Contract Ecosystem Deployed","Interconnected hexagonal or circular nodes forming a complex, secure web. Some nodes are highlighted or show activity.","Network of nodes, secure-looking connections, abstract representations of smart contracts (e.g., glowing scripts, puzzle pieces fitting together).","Mix of Deep Tech Blue and Cyber Teal, with Bright White for active connections. Ensure a look of security and complexity handled with elegance."
 "Year 1: DAO Governance Live","Diverse, abstract figures or icons connecting to a central, illuminated symbol representing decentralized decision-making or voting.","Stylized user icons, lines converging on a central governance symbol (e.g., a balanced scale, a multi-faceted crystal), data flows representing proposals/votes.","A balanced palette incorporating the primary colors with an additional neutral like #A0AEC0 (Cool Gray) to represent diverse inputs. Central symbol could use Tech Gold."`,
     endPrompt: "Ensure the image visually represents the specified roadmap stage with a futuristic and professional aesthetic. Maintain consistency in style, color usage, and the integration of any recurring branding elements (if a reference image was used) across all roadmap visuals. Clearly demarcate areas for future text overlays."
+  },
+  {
+    id: "game-tile-sprites",
+    name: "2D Game Tile Sprites",
+    startPrompt: `**Consistency Requirements** (Fixed Across All Tile Sprites):
+- **Art Style**: Clean, stylized 2D art, suitable for game development. Tiles should be designed to be visually compatible for use in a grid or repeating pattern.
+- **Perspective**: Consistent top-down or isometric perspective appropriate for 2D game tiles.
+- **Lighting**: Uniform lighting across all tiles to ensure they blend well.
+- **Resolution**: 512x512 pixels (square, suitable for game tiles).
+- **Negative Prompt**: Avoid 3D rendering, photographic realism, inconsistent lighting, elements that clearly break visual tiling (e.g., unique large objects that don't repeat well).
+- **Reference Image**: If a reference image is provided (e.g., an example tile style), instruct the AI: "Generate tiles in the art style of the reference image."`,
+    csvText: `Tile_Name,Primary_Material,Key_Features,Color_Dominance,Edge_Blending_Hint
+"Grass_Lush_01","Lush green grass","Small yellow wildflowers, subtle blades","Vibrant Green, hints of yellow","Soft transition on edges"
+"Stone_Path_01","Cobblestone","Slightly mossy, irregular rounded stones","Cool Grays, touch of green","Clear stone edges"
+"Water_Shallow_01","Clear blue water","Gentle ripples, sandy bottom visible","Light Blue, Sandy Beige","Subtle shoreline blend"
+"Desert_Sand_01","Fine yellow sand","Rolling dunes, sparse dry grass tufts","Warm Yellows, light browns","Smooth dune transitions"`,
+    endPrompt: "Ensure each image is a distinct surface tile suitable for a 2D game, maintaining a consistent visual style, perspective, and lighting. Aim for elements that could work well in a repeating pattern. Edges should be considered for potential tiling."
+  },
+  {
+    id: "character-asset-sets",
+    name: "Character Asset Sets (NFT Style)",
+    startPrompt: `**Consistency Requirements** (Fixed Across All Character Variations):
+- **Base Character Concept**: The core idea is to generate variations of a base character (e.g., 'a cool cartoon cat', 'a futuristic robot warrior', 'a mystical forest creature'). All outputs must clearly belong to the same character 'species' or design lineage.
+- **Art Style**: Clean 2D vector art style with bold outlines and vibrant flat colors, suitable for a PFP (Profile Picture) collection.
+- **Consistency**: The overall silhouette and core anatomical features (e.g., head shape, body type if visible) of the base character concept should remain highly recognizable across all variations.
+- **Presentation**: Each character should be centered, facing forward or slightly three-quarters view, on a clean background unless the background itself is a trait.
+- **Resolution**: 1080x1080 pixels (square, standard for PFP).
+- **Negative Prompt**: Inconsistent anatomy, different art styles between variations, overly complex or distracting backgrounds (unless specified as a trait), blurry or low-quality rendering.
+- **Using a Reference Image**: If a reference image of the base character concept is provided, state: "Use the character from the reference image as the base. Preserve its core design, proportions, and style, then apply the specific traits from each row."`,
+    csvText: `Character_ID,Base_Skin_Color,Background_Style,Headwear_Trait,Eyes_Trait,Mouth_Trait,Outfit_Trait,Accessory_Trait
+"RoboBot_001","Metallic Silver","Neon Grid Blue","Antennae Array","Glowing Red Visor","Neutral Vent","Chrome Chestplate","Shoulder Laser"
+"RoboBot_002","Matte Black","Abstract Purple Swirls","Tech Helmet","Multi-lens Optics","Slight Smirk","Stealth Armor","Energy Shield (Left Arm)"
+"ForestSprite_001","Leaf Green","Enchanted Forest (Blurred)","Flower Crown","Bright Blue Sparkle","Gentle Smile","Vine Tunic","Glowing Orb"
+"ForestSprite_002","Bark Brown","Moonlit Clearing","Antler Headdress","Ember Orange","Playful Fangs","Moss Cloak","Crystal Amulet"`,
+    endPrompt: "Each image must be a unique variation of the base character concept, clearly displaying the specified traits while maintaining the overall art style, character identity, and high quality suitable for a collectible series. Ensure clean presentation and focus on the character."
+  },
+  {
+    id: "abstract-backgrounds",
+    name: "Abstract Backgrounds/Wallpapers",
+    startPrompt: `**Consistency Requirements** (Fixed Across All Backgrounds):
+- **Art Style**: Generate a series of abstract background images focusing on fluid gradients, soft textures, and subtle light effects. The overall feel should be modern and aesthetically pleasing.
+- **Color Harmony**: While each background will have its unique color palette based on the CSV, ensure the colors within each image are harmonious and well-blended.
+- **Composition**: Aim for balanced compositions that are visually interesting but not overly cluttered. Suitable for use as wallpapers or digital backdrops.
+- **Resolution**: 1920x1080 pixels (16:9 aspect ratio).
+- **Negative Prompt**: Avoid figurative elements, recognizable objects unless abstractly implied, jarring color combinations (unless intentionally specified for a high-contrast theme), hard edges unless part of a specific geometric instruction.`,
+    csvText: `Theme_Name,Dominant_Color_1_HSL,Dominant_Color_2_HSL,Accent_Color_HSL,Mood_Keywords,Texture_Pattern_Hints
+"Serene_Dawn","HSL(30, 80%, 70%)","HSL(50, 75%, 80%)","HSL(180, 50%, 90%)","Calm, peaceful, soft, awakening","Smooth gradients, subtle mist, soft light bloom"
+"Deep_Ocean","HSL(220, 70%, 30%)","HSL(200, 60%, 40%)","HSL(180, 80%, 75%)","Mysterious, tranquil, deep, flowing","Gentle wave patterns, diffused light from above, subtle particle effects"
+"Vibrant_Galaxy","HSL(270, 80%, 25%)","HSL(300, 75%, 35%)","HSL(50, 90%, 60%)","Energetic, cosmic, expansive, awe-inspiring","Swirling nebulae, star-like sparkles, lens flare effects"
+"Minimalist_Pastel","HSL(340, 50%, 90%)","HSL(200, 60%, 92%)","HSL(150, 40%, 85%)","Clean, light, airy, subtle","Very soft color transitions, minimal texture, clean space"`,
+    endPrompt: "Ensure each image is a high-quality abstract background suitable for digital use (wallpaper, presentation slide back, etc.). It must adhere to the specified mood and color palette, focusing on aesthetic appeal and visual harmony. The composition should be balanced and engaging."
   }
 ];
 
@@ -213,7 +254,7 @@ export default function ImageForgeApp() {
     }
 
     let dataTextToParse: string;
-    let fileTypeHint: "CSV" | "TSV" = "CSV"; // Default to CSV
+    let fileTypeHint: "CSV" | "TSV" = "CSV"; 
 
     if (data.csvFile instanceof File) {
       const uploadedFile = data.csvFile;
@@ -241,7 +282,6 @@ export default function ImageForgeApp() {
       }
     } else if (data.csvText && data.csvText.trim() !== "") {
       dataTextToParse = data.csvText;
-      // Basic heuristic for pasted data
       if (dataTextToParse.includes('\t') && !dataTextToParse.includes(',')) {
           fileTypeHint = "TSV";
       }
@@ -291,14 +331,16 @@ export default function ImageForgeApp() {
       fullPrompt = fullPrompt.trim();
       
       const firstColumnKey = Object.keys(row)[0];
-      // Try to use specific keys first for better filename hint
       let fileNameBase = 
-        row["Stage_Title"] || // For roadmap
-        row["Video_Title_Concept"] || // For YouTube
-        row["Concept"] || // Generic
-        row["Panel_Number"] || // For comics
-        row["Product_Name"] || // For products
-        row["Page_Number"] || // For stories
+        row["Tile_Name"] || // For game tiles
+        row["Character_ID"] || // For character/NFT sets
+        row["Theme_Name"] || // For abstract backgrounds
+        row["Stage_Title"] || 
+        row["Video_Title_Concept"] || 
+        row["Concept"] || 
+        row["Panel_Number"] || 
+        row["Product_Name"] || 
+        row["Page_Number"] || 
         (firstColumnKey ? row[firstColumnKey] : '') || 
         `image_${i + 1}`;
       if (typeof fileNameBase !== 'string' || fileNameBase.trim() === '') {

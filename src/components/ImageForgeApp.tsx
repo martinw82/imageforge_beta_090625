@@ -332,9 +332,9 @@ export default function ImageForgeApp() {
       
       const firstColumnKey = Object.keys(row)[0];
       let fileNameBase = 
-        row["Tile_Name"] || // For game tiles
-        row["Character_ID"] || // For character/NFT sets
-        row["Theme_Name"] || // For abstract backgrounds
+        row["Tile_Name"] || 
+        row["Character_ID"] || 
+        row["Theme_Name"] || 
         row["Stage_Title"] || 
         row["Video_Title_Concept"] || 
         row["Concept"] || 
@@ -399,78 +399,74 @@ export default function ImageForgeApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col p-4 md:p-8 bg-background">
-      <header className="mb-8 text-center">
-        <div className="inline-flex items-center gap-3">
-          <ImageForgeLogo className="h-10 w-10 text-primary" />
-          <h1 className="text-4xl font-bold text-primary">ImageForge</h1>
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="text-center py-6 px-4 md:px-8 border-b border-border/60 shadow-sm bg-card/50">
+        <div className="inline-flex items-center gap-4">
+          <ImageForgeLogo className="h-12 w-12 text-primary" />
+          <h1 className="text-5xl font-bold text-primary">ImageForge</h1>
         </div>
-        <p className="text-muted-foreground mt-2">
-          Generate multiple images from CSV or TSV data using AI, with consistent elements and optional reference images.
-          <br />
-          Select a prompt template below to get started, or craft your own for diverse tasks!
+        <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+          Batch-generate images from CSV/TSV data. Define consistency rules, use reference images, and leverage prompt templates to kickstart your creative projects!
         </p>
       </header>
 
-      <main className="flex-grow container mx-auto max-w-6xl">
+      <main className="flex-grow container mx-auto max-w-7xl px-4 md:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <Card className="lg:col-span-4 shadow-lg rounded-lg">
-            <CardHeader>
-              <CardTitle className="text-foreground">Configuration</CardTitle>
+          <Card className="lg:col-span-4 shadow-xl rounded-lg border border-border/80">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-2xl text-foreground mb-1">Configuration</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <PromptForm 
                 form={form} 
                 onSubmit={form.handleSubmit(onSubmit)} 
                 isLoading={isLoading} 
                 promptTemplates={promptTemplates}
               />
-              <div className="mt-4 space-y-3">
+              <div className="mt-6 space-y-4">
                 {referenceImagePreview && (
-                  <div className="p-3 border rounded-lg bg-muted/50">
-                    <h3 className="text-xs font-medium text-foreground mb-1.5">Reference Image Preview:</h3>
+                  <div className="p-3 border rounded-md bg-muted/30">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Reference Image Preview:</h3>
                     <NextImage
                       src={referenceImagePreview}
                       alt="Reference image preview"
-                      width={80}
-                      height={80}
-                      className="rounded-md object-contain max-h-24 w-auto"
+                      width={100}
+                      height={100}
+                      className="rounded-md object-contain max-h-32 w-auto border border-border/50"
                       data-ai-hint="user uploaded"
                     />
                   </div>
                 )}
                 {uploadedDataFileName && (
-                   <div className="p-3 border rounded-lg bg-muted/50">
-                    <h3 className="text-xs font-medium text-foreground mb-1.5 flex items-center">
-                      <FileText className="h-4 w-4 mr-2 text-primary" />
+                   <div className="p-3 border rounded-md bg-muted/30">
+                    <h3 className="text-sm font-semibold text-foreground mb-1.5 flex items-center">
+                      <FileText className="h-5 w-5 mr-2 text-primary" />
                       Uploaded Data File:
                     </h3>
-                    <p className="text-sm text-foreground truncate">{uploadedDataFileName}</p>
+                    <p className="text-sm text-foreground truncate pl-1">{uploadedDataFileName}</p>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-8 shadow-lg rounded-lg">
-            <CardHeader>
-              <CardTitle className="text-foreground">Generated Images</CardTitle>
+          <Card className="lg:col-span-8 shadow-xl rounded-lg border border-border/80">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-2xl text-foreground mb-1">Generated Images</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {isLoading && (
-                <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground">{progressMessage}</p>
+                <div className="flex flex-col items-center justify-center h-full min-h-[300px] p-6">
+                  <Loader2 className="h-16 w-16 animate-spin text-primary mb-6" />
+                  <p className="text-lg text-muted-foreground font-medium">{progressMessage}</p>
                 </div>
               )}
               {!isLoading && generatedImages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
-                   <ImageIcon className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    Your generated images will appear here.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Select a template or configure your prompts, data, and optionally a reference image, then click "Generate Images".
+                <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center p-6 bg-muted/30 rounded-md border border-dashed border-border/70">
+                   <ImageIcon className="h-24 w-24 text-muted-foreground/70 mb-6" />
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Ready to Forge Some Images?</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Configure your prompts and data on the left, then click "Generate Images". Your creations will appear right here.
                   </p>
                 </div>
               )}
@@ -482,9 +478,9 @@ export default function ImageForgeApp() {
         </div>
       </main>
 
-      <footer className="text-center mt-12 py-4 border-t border-border">
+      <footer className="text-center py-6 px-4 md:px-8 border-t border-border/60 mt-12 bg-card/30">
         <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} ImageForge. All rights reserved.
+          &copy; {new Date().getFullYear()} ImageForge. Powered by AI.
         </p>
       </footer>
     </div>
